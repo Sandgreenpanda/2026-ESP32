@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <cstdint>
-#include "home.h"
+//#include "home.h"
 // #include <DIYables_ESP32_WebServer.h>
 
 WiFiMulti wifiMulti;
@@ -12,9 +12,9 @@ WiFiMulti wifiMulti;
 const uint32_t connectTimeoutMs = 10000;
 
 
-const char homeHtml[] = {
-#embed "templates/home.html"
-};
+//const char homeHtml[] = {
+//#embed "templates/home.html"
+//};
 
 
 // Port 80 for http
@@ -39,6 +39,13 @@ void givePage(WiFiClient client, String page, String stylesheet) {
 }
 
 void setup() {
+// pins for mosfet test. TEMP
+pinMode(23, OUTPUT);
+pinMode(22, OUTPUT);
+digitalWrite(22, HIGH);
+digitalWrite(23, HIGH);
+// End TEMP
+
     Serial.begin(115200);
     Serial.print(""); // Idk, why, but this stops the garbage output at the start
     WiFi.mode(WIFI_STA);
@@ -81,7 +88,7 @@ void loop() {
                         // and a content-type so the client knows what's coming, then a blank line:
                         givePage(
                             client,
-                            homeHtml,
+                            "<p>WEB PAGE!</p>",
                             "html {font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}"
                             ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px; text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}"
                             ".button2 {background-color: #555555;}"

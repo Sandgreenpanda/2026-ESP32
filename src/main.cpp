@@ -162,6 +162,13 @@ void setup() {
   Serial.begin(115200);
   delay(3000);
 
+  // pins for mosfet test. TEMP
+pinMode(23, OUTPUT);
+pinMode(22, OUTPUT);
+digitalWrite(22, HIGH);
+digitalWrite(23, HIGH);
+// End TEMP
+
   Serial.println("Creating a new self-signed certificate.");
   Serial.println("This may take up to a minute, so be patient ;-)");
 

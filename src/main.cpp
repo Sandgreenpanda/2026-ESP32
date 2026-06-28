@@ -139,19 +139,17 @@ void loop() {
 #define WIFI_PSK  "iujonmhmjm"
 
 #include <sha/sha_parallel_engine.h>
-
-// We will use wifi
 #include <WiFi.h>
-
-// Includes for the server
 #include <HTTPSServer.hpp>
 #include <SSLCert.hpp>
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
-
+#include <WiFiMulti.h>
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
+
+WiFiMulti wifiMulti;
 
 SSLCert * cert;
 HTTPSServer * secureServer;
@@ -161,25 +159,15 @@ void handleRoot(HTTPRequest * req, HTTPResponse * res);
 void handle404(HTTPRequest * req, HTTPResponse * res);
 
 void setup() {
-  // For logging
   Serial.begin(115200);
-  delay(3000); // wait for the monitor to reconnect after uploading.
+  delay(3000);
 
   Serial.println("Creating a new self-signed certificate.");
   Serial.println("This may take up to a minute, so be patient ;-)");
 
-  // First, we create an empty certificate:
+
   cert = new SSLCert();
 
-  // Now, we use the function createSelfSignedCert to create private key and certificate.
-  // The function takes the following paramters:
-  // - Key size: 1024 or 2048 bit should be fine here, 4096 on the ESP might be "paranoid mode"
-  //   (in generel: shorter key = faster but less secure)
-  // - Distinguished name: The name of the host as used in certificates.
-  //   If you want to run your own DNS, the part after CN (Common Name) should match the DNS
-  //   entry pointing to your ESP32. You can try to insert an IP there, but that's not really good style.
-  // - Dates for certificate validity (optional, default is 2019-2029, both included)
-  //   Format is YYYYMMDDhhmmss
   int createCertResult = createSelfSignedCert(
     *cert,
     KEYSIZE_1024,
@@ -220,7 +208,19 @@ void setup() {
 
   // Connect to WiFi
   Serial.println("Setting up WiFi");
-  WiFi.begin(WIFI_SSID, WIFI_PSK);
+ wifiMulti.addAP("WC Devices", "iujonmhmjm");
+
+    // Connect to Wi-Fi using wifiMulti (connects to the SSID with strongest connection)
+    Serial.println("Connecting Wifi...");
+    if (wifiMulti.run() == WL_CONNECTED) {
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("Wifi unable to connect");
+    }
+
+    Serial.println("Website http://" + WiFi.localIP().toString());
+
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);

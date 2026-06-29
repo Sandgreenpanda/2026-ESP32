@@ -1,161 +1,233 @@
-#include <sha/sha_parallel_engine.h>
-#include <WiFi.h>
-#include <HTTPSServer.hpp>
-#include <SSLCert.hpp>
-#include <HTTPRequest.hpp>
-#include <HTTPResponse.hpp>
-#include <WiFiMulti.h>
+#include "WiFi.h"
+#include "WebSocketsClient.h"
+#include "ArduinoJson.h"
 
-// The HTTPS Server comes in a separate namespace. For easier use, include it here.
-using namespace httpsserver;
+#include "connection_linked_list.h"
+#include "tcp_middleware.h"
 
-WiFiMulti wifiMulti;
+const int bufferSize = 1024;
+uint8_t buffer[bufferSize];
 
-SSLCert * cert;
-HTTPSServer * secureServer;
+const char* ssid = "WC Devices";
+const char* password = "iujonmhmjm";
 
-// Declare some handler functions for the various URLs on the server
-void handleRoot(HTTPRequest * req, HTTPResponse * res);
-void handle404(HTTPRequest * req, HTTPResponse * res);
+const int tcpMiddlewareAmount = 1;
+tcpMiddleware tcpMiddlewares[tcpMiddlewareAmount] = {
+  { 32512, 30120, "10.47.6.92", new WebSocketsClient(), millis(), 20 * 1000, new ConnectionsLinkedList() }
+};
+
+struct socketData {
+  const String socketId;
+  const String event;
+  char* packet;
+};
+
+socketData getSocketReceivedData(char* payload) {
+
+  StaticJsonDocument<1024> JSON;
+  DeserializationError error = deserializeJson(JSON, (char*)payload);
+
+  if (error) {
+    return { "ERROR", "ERROR" };
+  }
+
+  const String socketId = JSON["socketId"];
+  const String event = JSON["event"];
+  const String packet = JSON["packet"];
+  const JsonArray bytesArr = JSON["packet"].as<JsonArray>();
+
+  Serial.print("Received socket Data JSON Size:");
+  Serial.print(JSON.memoryUsage());
+
+  char* packetBuffer = (char*)malloc(bytesArr.size() + 1);
+
+  for (int i = 0; i < bytesArr.size(); i++) {
+    
+    packetBuffer[i] = (char)bytesArr[i].as<int>();
+  }
+  
+  return { socketId, event, packetBuffer };
+}
+    
+void initializeSockets() {
+
+  for (int currentIndex = 0; currentIndex < tcpMiddlewareAmount; currentIndex++) {
+
+    tcpMiddlewares[currentIndex].reverseProxyClient->begin(reverseProxyAddress, tcpMiddlewares[currentIndex].reverseProxyPort);
+    tcpMiddlewares[currentIndex].reverseProxyClient->onEvent([currentIndex](WStype_t type, uint8_t * payload, size_t length) {
+
+      switch(type) {
+    
+        case WStype_DISCONNECTED:
+          Serial.println("Disconnected from WebSocket Server");
+          break;
+          
+        case WStype_CONNECTED:
+          Serial.println("Connected to WebSocket Server");
+          break;
+          
+        case WStype_TEXT:
+        
+          Serial.println("Message received from WebSocket Server: " + String((char *)payload));
+
+          socketData data = getSocketReceivedData((char*)payload);
+    
+          if (data.socketId == "ERROR") {
+            Serial.println("Error while trying to read JSON");
+            return;
+          }
+    
+          const String socketId = data.socketId;
+          const String event = data.event;
+          const char* packet = data.packet;
+    
+          Node* targetConnection = tcpMiddlewares[currentIndex].connections->getBySocketId(socketId);
+        
+          if (targetConnection == nullptr) {
+    
+            Serial.print("Creating TCP connection to ");
+            Serial.print(tcpMiddlewares[currentIndex].localIpv4);
+            Serial.print(":" + String(tcpMiddlewares[currentIndex].localPort));
+            Serial.println(" for socketId: " + socketId);
+            
+            WiFiClient tcpClient;
+    
+            if (tcpClient.connect(tcpMiddlewares[currentIndex].localIpv4, tcpMiddlewares[currentIndex].localPort)) {
+              
+              tcpClient.print(packet);
+              tcpMiddlewares[currentIndex].connections->insert(socketId, tcpClient);
+    
+              Serial.print("Created TCP connection to ");
+              Serial.print(tcpMiddlewares[currentIndex].localIpv4);
+              Serial.print(":" + String(tcpMiddlewares[currentIndex].localPort));
+              Serial.println(" for socketId: " + socketId);
+            }
+            
+          } else {
+    
+            if (event == "__SOCKET_DISCONNECTED__") {
+    
+              targetConnection->tcpClient.stop();
+              tcpMiddlewares[currentIndex].connections->remove(targetConnection->socketId);
+              
+            } else {
+    
+              targetConnection->tcpClient.print(packet);
+            }
+            
+          }
+          
+          break;
+      }
+    });
+  }
+}
 
 void setup() {
+
   Serial.begin(115200);
-  delay(3000);
-
-  // pins for mosfet test. TEMP
-pinMode(23, OUTPUT);
-pinMode(22, OUTPUT);
-digitalWrite(22, HIGH);
-digitalWrite(23, HIGH);
-// End TEMP
-
-  Serial.println("Creating a new self-signed certificate.");
-  Serial.println("This may take up to a minute, so be patient ;-)");
-
-
-  cert = new SSLCert();
-
-  int createCertResult = createSelfSignedCert(
-    *cert,
-    KEYSIZE_1024,
-    "CN=10.47.6.92,O=Sandgreenpanda,C=DE",
-    "20190101000000",
-    "20300101000000"
-  );
-
-  // Now check if creating that worked
-  if (createCertResult != 0) {
-    Serial.printf("Cerating certificate failed. Error Code = 0x%02X, check SSLCert.hpp for details", createCertResult);
-    while(true) delay(500);
-  }
-  Serial.println("Creating the certificate was successful");
-
-  // If you're working on a serious project, this would be a good place to initialize some form of non-volatile storage
-  // and to put the certificate and the key there. This has the advantage that the certificate stays the same after a reboot
-  // so your client still trusts your server, additionally you increase the speed-up of your application.
-  // Some browsers like Firefox might even reject the second run for the same issuer name (the distinguished name defined above).
-  //
-  // Storing:
-  //   For the key:
-  //     cert->getPKLength() will return the length of the private key in byte
-  //     cert->getPKData() will return the actual private key (in DER-format, if that matters to you)
-  //   For the certificate:
-  //     cert->getCertLength() and ->getCertData() do the same for the actual certificate data.
-  // Restoring:
-  //   When your applications boots, check your non-volatile storage for an existing certificate, and if you find one
-  //   use the parameterized SSLCert constructor to re-create the certificate and pass it to the HTTPSServer.
-  //
-  // A short reminder on key security: If you're working on something professional, be aware that the storage of the ESP32 is
-  // not encrypted in any way. This means that if you just write it to the flash storage, it is easy to extract it if someone
-  // gets a hand on your hardware. You should decide if that's a relevant risk for you and apply countermeasures like flash
-  // encryption if neccessary
-
-  // We can now use the new certificate to setup our server as usual.
-  secureServer = new HTTPSServer(cert);
-
-  // Connect to WiFi
-  Serial.println("Setting up WiFi");
- wifiMulti.addAP("WC Devices", "iujonmhmjm");
-
-    // Connect to Wi-Fi using wifiMulti (connects to the SSID with strongest connection)
-    Serial.println("Connecting Wifi...");
-    if (wifiMulti.run() == WL_CONNECTED) {
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
-    } else {
-        Serial.println("Wifi unable to connect");
-    }
-
-    Serial.println("Website http://" + WiFi.localIP().toString());
+  
+  WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
+    delay(1000);
+    Serial.println("Connecting to Wi-Fi...");
   }
-  Serial.print("Connected. IP=");
+  
+  Serial.println("Connected to Wi-Fi!");
+  Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  // For every resource available on the server, we need to create a ResourceNode
-  // The ResourceNode links URL and HTTP method to a handler function
-  ResourceNode * nodeRoot    = new ResourceNode("/", "GET", &handleRoot);
-  ResourceNode * node404     = new ResourceNode("", "GET", &handle404);
-
-  // Add the root node to the server
-  secureServer->registerNode(nodeRoot);
-  // Add the 404 not found node to the server.
-  secureServer->setDefaultNode(node404);
-
-  Serial.println("Starting server...");
-  secureServer->start();
-  if (secureServer->isRunning()) {
-    Serial.println("Server ready.");
-  }
+  initializeSockets();
 }
 
 void loop() {
-  // This call will let the server do its work
-  secureServer->loop();
 
-  // Other code would go here...
-  delay(1);
-}
+  for (int i = 0; i < tcpMiddlewareAmount; i++) {
 
-void handleRoot(HTTPRequest * req, HTTPResponse * res) {
-  // Status code is 200 OK by default.
-  // We want to deliver a simple HTML page, so we send a corresponding content type:
-  res->setHeader("Content-Type", "text/html");
+    tcpMiddlewares[i].reverseProxyClient->loop();
 
-  // The response implements the Print interface, so you can use it just like
-  // you would write to Serial etc.
-  res->println("<!DOCTYPE html>");
-  res->println("<html>");
-  res->println("<head><title>Hello World!</title></head>");
-  res->println("<body>");
-  res->println("<h1>Hello World!</h1>");
-  res->print("<p>Your server is running for ");
-  // A bit of dynamic data: Show the uptime
-  res->print((int)(millis()/1000), DEC);
-  res->println(" seconds.</p>");
-  res->println("</body>");
-  res->println("</html>");
-}
+    if (millis() - tcpMiddlewares[i].lastHeartBeat > tcpMiddlewares[i].heartBeatInterval) {
 
-void handle404(HTTPRequest * req, HTTPResponse * res) {
-  // Discard request body, if we received any
-  // We do this, as this is the default node and may also server POST/PUT requests
-  req->discardRequestBody();
+      Serial.print("Sending Heartbeat to: ");
+      Serial.print(reverseProxyAddress);
+      Serial.print(":");
+      Serial.println(tcpMiddlewares[i].reverseProxyPort);
+      
+      tcpMiddlewares[i].reverseProxyClient->sendPing();
+      tcpMiddlewares[i].lastHeartBeat = millis();
+    }
 
-  // Set the response status
-  res->setStatusCode(404);
-  res->setStatusText("Not Found");
+    Node* current = tcpMiddlewares[i].connections->head;
+    while (current != nullptr) {
 
-  // Set content type of the response
-  res->setHeader("Content-Type", "text/html");
+        Serial.println();
+        Serial.print("Verifying connection: ");
+        Serial.println(current->socketId);
+        Serial.println();
+        
+        DynamicJsonDocument JSONArray(2048);
+        int bytesReaded = 0;
 
-  // Write a tiny HTTP page
-  res->println("<!DOCTYPE html>");
-  res->println("<html>");
-  res->println("<head><title>Not Found</title></head>");
-  res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
-  res->println("</html>");
+        // Each byte is equal 16 bytes on DynamicJsonDocument
+        // 100 bytes = 1600 bytes
+        // let's reserve 100 bytes for the socketId
+        // 2048 - 100 = 1948
+        // 1948 / 16 = 121 bytes.
+        
+        while (current->tcpClient.available() > 0 && bytesReaded < 121) {
+
+          current->tcpClient.readBytes(buffer, 1);
+
+          JSONArray.add(buffer[0]);
+          bytesReaded += 1;
+        }
+
+        if (bytesReaded > 0) {
+
+          Serial.print("Total of bytes readed: ");
+          Serial.println(bytesReaded);
+
+          Serial.print("Array JSON memory size: ");
+          Serial.println(JSONArray.memoryUsage());
+          
+          StaticJsonDocument<2048> JSON;
+  
+          JSON["socketId"] = current->socketId;
+          JSON["packet"] = JSONArray;
+
+          Serial.print("JSON memory size: ");
+          Serial.println(JSON.memoryUsage());
+          
+          String stringifyJSON;
+          serializeJson(JSON, stringifyJSON);
+  
+          Serial.println("StringifyJSON");
+          Serial.println(stringifyJSON);
+          
+          tcpMiddlewares[i].reverseProxyClient->sendTXT(stringifyJSON);
+  
+          if (!current->tcpClient.connected()) {
+  
+              Serial.println("Socket: " + current->socketId + "disconnected!");
+  
+              StaticJsonDocument<1024> JSON;
+  
+              JSON["socketId"] = current->socketId;
+              JSON["event"] = "__SOCKET_DISCONNECTED__";
+              JSON.createNestedArray("packet");
+  
+              String stringifyJSON;
+              serializeJson(JSON, stringifyJSON);
+            
+              tcpMiddlewares[i].reverseProxyClient->sendTXT(stringifyJSON);
+              tcpMiddlewares[i].connections->remove(current->socketId);
+          }
+        }
+        
+        current = current->next;
+    }
+   
+  }
+
 }

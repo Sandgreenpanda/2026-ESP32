@@ -17,6 +17,7 @@ HTTPSServer * secureServer;
 // Declare some handler functions for the various URLs on the server
 void handleRoot(HTTPRequest * req, HTTPResponse * res);
 void handle404(HTTPRequest * req, HTTPResponse * res);
+void handleTerminal(HTTPRequest * req, HTTPResponse * res);
 
 void setup() {
   Serial.begin(115200);
@@ -99,11 +100,14 @@ digitalWrite(23, HIGH);
   // The ResourceNode links URL and HTTP method to a handler function
   ResourceNode * nodeRoot    = new ResourceNode("/", "GET", &handleRoot);
   ResourceNode * node404     = new ResourceNode("", "GET", &handle404);
+  ResourceNode * nodeTerminal = new ResourceNode("/terminal", "GET", &handleTerminal);
 
   // Add the root node to the server
   secureServer->registerNode(nodeRoot);
   // Add the 404 not found node to the server.
   secureServer->setDefaultNode(node404);
+  // Add Terminal node
+  secureServer->registerNode(nodeTerminal);
 
   Serial.println("Starting server...");
   secureServer->start();
@@ -139,6 +143,39 @@ void handleRoot(HTTPRequest * req, HTTPResponse * res) {
   res->println("</body>");
   res->println("</html>");
 }
+
+void handleTerminal(HTTPRequest * req, HTTPResponse * res) {
+ // Status code is 200 OK by default.
+  // We want to deliver a simple HTML page, so we send a corresponding content type:
+  res->setHeader("Content-Type", "text/html");
+
+  // The response implements the Print interface, so you can use it just like
+  // you would write to Serial etc.
+  res->println("<!DOCTYPE html>");
+res->println("<html lang=\"en\">");
+res->println("<head>");
+res->println("    <meta charset=\"UTF-8\">");
+res->println("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+res->println("    <title>Xterm.js Demo</title>");
+res->println("    <link rel=\"stylesheet\" href=\"https://unpkg.com/xterm/css/xterm.css\" />");
+res->println("    <script src=\"https://unpkg.com/xterm/lib/xterm.js\"></script>");
+res->println("</head>");
+res->println("<body>");
+res->println("    <div id=\"terminal\"></div>");
+
+res->println("    <script>");
+
+res->println("    const term = new Terminal();");
+res->println("    const terminalContainer = document.getElementById('terminal');");
+res->println("    term.open(terminalContainer);");
+
+res->println("    term.write('Welcome to Xterm.js Demo\\n');");
+
+res->println("    </script>");
+res->println("</body>");
+res->println("</html>");
+
+};
 
 void handle404(HTTPRequest * req, HTTPResponse * res) {
   // Discard request body, if we received any

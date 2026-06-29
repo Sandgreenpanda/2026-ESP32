@@ -1,5 +1,3 @@
-/*
-
 #include <sha/sha_parallel_engine.h>
 #include <WiFi.h>
 #include <HTTPSServer.hpp>
@@ -161,5 +159,3 @@ void handle404(HTTPRequest * req, HTTPResponse * res) {
   res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
   res->println("</html>");
 }
-
-*/

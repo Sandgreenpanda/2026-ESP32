@@ -1,6 +1,7 @@
 
-/*
 
+
+#include "esp32-hal.h"
 #include <sha/sha_parallel_engine.h>
 #include <WiFi.h>
 #include <HTTPSServer.hpp>
@@ -8,6 +9,13 @@
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include <WiFiMulti.h>
+
+#define LAPTOP_HP_1 17
+#define LAPTOP_HP_2 16
+#define LAPTOP_LENOVO_1 4
+#define LAPTOP_ACER_1 19
+#define LAPTOP_ACER_2 18
+
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -21,17 +29,27 @@ HTTPSServer * secureServer;
 void handleRoot(HTTPRequest * req, HTTPResponse * res);
 void handle404(HTTPRequest * req, HTTPResponse * res);
 void handleTerminal(HTTPRequest * req, HTTPResponse * res);
+void handleToggle1(HTTPRequest * req, HTTPResponse * res);
+void handleToggle2(HTTPRequest * req, HTTPResponse * res);
+void handleToggle3(HTTPRequest * req, HTTPResponse * res);
+void handleToggle4(HTTPRequest * req, HTTPResponse * res);
+void handleToggle5(HTTPRequest * req, HTTPResponse * res);
 
 void setup() {
   Serial.begin(115200);
   delay(3000);
 
-  // pins for mosfet test. TEMP
-pinMode(23, OUTPUT);
-pinMode(22, OUTPUT);
-digitalWrite(22, HIGH);
-digitalWrite(23, HIGH);
-// End TEMP
+
+digitalWrite(LAPTOP_HP_1, LOW);
+digitalWrite(LAPTOP_HP_2, LOW);
+digitalWrite(LAPTOP_LENOVO_1, LOW);
+digitalWrite(LAPTOP_ACER_1, LOW);
+digitalWrite(LAPTOP_ACER_2, LOW);
+pinMode(LAPTOP_HP_1, OUTPUT);
+pinMode(LAPTOP_HP_2, OUTPUT);
+pinMode(LAPTOP_LENOVO_1, OUTPUT);
+pinMode(LAPTOP_ACER_1, OUTPUT);
+pinMode(LAPTOP_ACER_2, OUTPUT);
 
   Serial.println("Creating a new self-signed certificate.");
   Serial.println("This may take up to a minute, so be patient ;-)");
@@ -80,6 +98,7 @@ digitalWrite(23, HIGH);
   // Connect to WiFi
   Serial.println("Setting up WiFi");
  wifiMulti.addAP("WC Devices", "iujonmhmjm");
+ wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
 
     // Connect to Wi-Fi using wifiMulti (connects to the SSID with strongest connection)
     Serial.println("Connecting Wifi...");
@@ -104,6 +123,11 @@ digitalWrite(23, HIGH);
   ResourceNode * nodeRoot    = new ResourceNode("/", "GET", &handleRoot);
   ResourceNode * node404     = new ResourceNode("", "GET", &handle404);
   ResourceNode * nodeTerminal = new ResourceNode("/terminal", "GET", &handleTerminal);
+  ResourceNode * nodeToggle1 = new ResourceNode("/toggle1", "POST", &handleToggle1);
+  ResourceNode * nodeToggle2 = new ResourceNode("/toggle2", "POST", &handleToggle2);
+  ResourceNode * nodeToggle3 = new ResourceNode("/toggle3", "POST", &handleToggle3);
+  ResourceNode * nodeToggle4 = new ResourceNode("/toggle4", "POST", &handleToggle4);
+  ResourceNode * nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
 
   // Add the root node to the server
   secureServer->registerNode(nodeRoot);
@@ -111,6 +135,12 @@ digitalWrite(23, HIGH);
   secureServer->setDefaultNode(node404);
   // Add Terminal node
   secureServer->registerNode(nodeTerminal);
+
+  secureServer->registerNode(nodeToggle1);
+  secureServer->registerNode(nodeToggle2);
+  secureServer->registerNode(nodeToggle3);
+  secureServer->registerNode(nodeToggle4);
+  secureServer->registerNode(nodeToggle5);
 
   Serial.println("Starting server...");
   secureServer->start();
@@ -165,6 +195,12 @@ res->println("    <script src=\"https://unpkg.com/xterm/lib/xterm.js\"></script>
 res->println("</head>");
 res->println("<body>");
 res->println("    <div id=\"terminal\"></div>");
+res->println("<iframe name='dummyframe' id='dummyframe' style='display: none;'></iframe>");
+res->println("<form action='/toggle1' method='post' target='dummyframe'>Toggle HP 1<input type='submit'></form>");
+res->println("<form action='/toggle2' method='post' target='dummyframe'>Toggle HP 2<input type='submit'></form>");
+res->println("<form action='/toggle3' method='post' target='dummyframe'>Toggle Lenvo 1<input type='submit'></form>");
+res->println("<form action='/toggle4' method='post' target='dummyframe'>Toggle Acer 1<input type='submit'></form>");
+res->println("<form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>");
 
 res->println("    <script>");
 
@@ -179,6 +215,47 @@ res->println("</body>");
 res->println("</html>");
 
 };
+
+void handleToggle1(HTTPRequest * req, HTTPResponse * res) {
+  res->setStatusCode(200);
+    res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  digitalWrite(LAPTOP_HP_1, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_HP_1, LOW);
+}
+void handleToggle2(HTTPRequest * req, HTTPResponse * res) {
+  res->setStatusCode(200);
+    res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  digitalWrite(LAPTOP_HP_2, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_HP_2, LOW);
+}
+void handleToggle3(HTTPRequest * req, HTTPResponse * res) {
+  res->setStatusCode(200);
+    res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  digitalWrite(LAPTOP_LENOVO_1, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_LENOVO_1, LOW);
+}
+void handleToggle4(HTTPRequest * req, HTTPResponse * res) {
+  res->setStatusCode(200);
+    res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  digitalWrite(LAPTOP_ACER_1, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_ACER_1, LOW);
+}
+void handleToggle5(HTTPRequest * req, HTTPResponse * res) {
+  res->setStatusCode(200);
+  res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  digitalWrite(LAPTOP_ACER_2, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_ACER_2, LOW);
+}
 
 void handle404(HTTPRequest * req, HTTPResponse * res) {
   // Discard request body, if we received any
@@ -199,4 +276,4 @@ void handle404(HTTPRequest * req, HTTPResponse * res) {
   res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
   res->println("</html>");
 }
-*/
+

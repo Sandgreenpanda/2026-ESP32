@@ -302,7 +302,7 @@ ssh_session connect_ssh(char *password, const char *host, const char *user, int 
     return NULL;
 }
 
-int ex_main(int argc, char **argv) {
+int ex_main() {
     ssh_session session = NULL;
     ssh_channel channel = NULL;
     char buffer[256];
@@ -425,6 +425,7 @@ void event_cb(void *args, esp_event_base_t base, int32_t id, void *event_data) {
 
 void controlTask(void *pvParameter) {
     // Mount the file system.
+    /*
     boolean fsGood = SPIFFS.begin();
     if (!fsGood) {
         printf("%% No formatted SPIFFS filesystem found to mount.\n");
@@ -447,6 +448,8 @@ void controlTask(void *pvParameter) {
     printf(
         "%% Mounted SPIFFS used=%d total=%d\r\n", SPIFFS.usedBytes(),
         SPIFFS.totalBytes());
+
+    */
 
     wifiPhyConnected = false;
     WiFi.disconnect(true);
@@ -499,6 +502,7 @@ void controlTask(void *pvParameter) {
             libssh_begin();
 
             // Call the EXAMPLE main code.
+            /*
             {
                 const char *ex_argv[] = {EX_CMD, NULL};
                 int ex_argc = sizeof ex_argv / sizeof ex_argv[0] - 1;
@@ -513,6 +517,22 @@ void controlTask(void *pvParameter) {
                 printf("%% Execution completed: rc=%d, elapsed=%ldms\n",
                        ex_rc, (long)millis() - start_millis);
             }
+            */
+            // Why does this not work???
+            // Call the EXAMPLE main code.
+            
+            {
+
+
+
+                long start_millis = millis(); // Current time
+                printf("\n[SNIP STDOUT START]\n");
+                int ex_rc = ex_main();
+                printf("[SNIP STDOUT FINISH]\n");
+                printf("%% Execution completed: rc=%d, elapsed=%ldms\n",
+                       ex_rc, (long)millis() - start_millis);
+            }
+            
             while (1)
                 vTaskDelay(60000 / portTICK_PERIOD_MS);
             // Finished the EXAMPLE main code.

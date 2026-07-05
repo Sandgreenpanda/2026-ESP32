@@ -1,6 +1,7 @@
+/*
 
 
-
+#include "HardwareSerial.h"
 #include "esp32-hal.h"
 #include <sha/sha_parallel_engine.h>
 #include <WiFi.h>
@@ -12,6 +13,7 @@
 
 #define LAPTOP_HP_1 17
 #define LAPTOP_HP_2 16
+#define LAPTOP_HP_3 21
 #define LAPTOP_LENOVO_1 4
 #define LAPTOP_ACER_1 19
 #define LAPTOP_ACER_2 18
@@ -34,6 +36,7 @@ void handleToggle2(HTTPRequest * req, HTTPResponse * res);
 void handleToggle3(HTTPRequest * req, HTTPResponse * res);
 void handleToggle4(HTTPRequest * req, HTTPResponse * res);
 void handleToggle5(HTTPRequest * req, HTTPResponse * res);
+void handleToggle6(HTTPRequest * req, HTTPResponse * res);
 
 void setup() {
   Serial.begin(115200);
@@ -42,11 +45,13 @@ void setup() {
 
 digitalWrite(LAPTOP_HP_1, LOW);
 digitalWrite(LAPTOP_HP_2, LOW);
+digitalWrite(LAPTOP_HP_3, LOW);
 digitalWrite(LAPTOP_LENOVO_1, LOW);
 digitalWrite(LAPTOP_ACER_1, LOW);
 digitalWrite(LAPTOP_ACER_2, LOW);
 pinMode(LAPTOP_HP_1, OUTPUT);
 pinMode(LAPTOP_HP_2, OUTPUT);
+pinMode(LAPTOP_HP_3, OUTPUT);
 pinMode(LAPTOP_LENOVO_1, OUTPUT);
 pinMode(LAPTOP_ACER_1, OUTPUT);
 pinMode(LAPTOP_ACER_2, OUTPUT);
@@ -99,6 +104,7 @@ pinMode(LAPTOP_ACER_2, OUTPUT);
   Serial.println("Setting up WiFi");
  wifiMulti.addAP("WC Devices", "iujonmhmjm");
  wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
+ wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
 
     // Connect to Wi-Fi using wifiMulti (connects to the SSID with strongest connection)
     Serial.println("Connecting Wifi...");
@@ -128,6 +134,7 @@ pinMode(LAPTOP_ACER_2, OUTPUT);
   ResourceNode * nodeToggle3 = new ResourceNode("/toggle3", "POST", &handleToggle3);
   ResourceNode * nodeToggle4 = new ResourceNode("/toggle4", "POST", &handleToggle4);
   ResourceNode * nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
+  ResourceNode * nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
 
   // Add the root node to the server
   secureServer->registerNode(nodeRoot);
@@ -141,6 +148,7 @@ pinMode(LAPTOP_ACER_2, OUTPUT);
   secureServer->registerNode(nodeToggle3);
   secureServer->registerNode(nodeToggle4);
   secureServer->registerNode(nodeToggle5);
+    secureServer->registerNode(nodeToggle6);
 
   Serial.println("Starting server...");
   secureServer->start();
@@ -201,6 +209,7 @@ res->println("<form action='/toggle2' method='post' target='dummyframe'>Toggle H
 res->println("<form action='/toggle3' method='post' target='dummyframe'>Toggle Lenvo 1<input type='submit'></form>");
 res->println("<form action='/toggle4' method='post' target='dummyframe'>Toggle Acer 1<input type='submit'></form>");
 res->println("<form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>");
+res->println("<form action='/toggle6' method='post' target='dummyframe'>Toggle HP 3<input type='submit'></form>");
 
 res->println("    <script>");
 
@@ -217,44 +226,40 @@ res->println("</html>");
 };
 
 void handleToggle1(HTTPRequest * req, HTTPResponse * res) {
-  res->setStatusCode(200);
-    res->setHeader("Content-Type", "text/html");
-  res->println("<!DOCTYPE html>");
+  Serial.println("1");
   digitalWrite(LAPTOP_HP_1, HIGH);
   delay(1000);
   digitalWrite(LAPTOP_HP_1, LOW);
 }
 void handleToggle2(HTTPRequest * req, HTTPResponse * res) {
-  res->setStatusCode(200);
-    res->setHeader("Content-Type", "text/html");
-  res->println("<!DOCTYPE html>");
+  Serial.println("2");
   digitalWrite(LAPTOP_HP_2, HIGH);
   delay(1000);
   digitalWrite(LAPTOP_HP_2, LOW);
 }
 void handleToggle3(HTTPRequest * req, HTTPResponse * res) {
-  res->setStatusCode(200);
-    res->setHeader("Content-Type", "text/html");
-  res->println("<!DOCTYPE html>");
+  Serial.println("3");
   digitalWrite(LAPTOP_LENOVO_1, HIGH);
   delay(1000);
   digitalWrite(LAPTOP_LENOVO_1, LOW);
 }
 void handleToggle4(HTTPRequest * req, HTTPResponse * res) {
-  res->setStatusCode(200);
-    res->setHeader("Content-Type", "text/html");
-  res->println("<!DOCTYPE html>");
+  Serial.println("4");
   digitalWrite(LAPTOP_ACER_1, HIGH);
   delay(1000);
   digitalWrite(LAPTOP_ACER_1, LOW);
 }
 void handleToggle5(HTTPRequest * req, HTTPResponse * res) {
-  res->setStatusCode(200);
-  res->setHeader("Content-Type", "text/html");
-  res->println("<!DOCTYPE html>");
+  Serial.println("5");
   digitalWrite(LAPTOP_ACER_2, HIGH);
   delay(1000);
   digitalWrite(LAPTOP_ACER_2, LOW);
+}
+void handleToggle6(HTTPRequest * req, HTTPResponse * res) {
+  Serial.println("6");
+  digitalWrite(LAPTOP_HP_3, HIGH);
+  delay(1000);
+  digitalWrite(LAPTOP_HP_3, LOW);
 }
 
 void handle404(HTTPRequest * req, HTTPResponse * res) {
@@ -277,3 +282,6 @@ void handle404(HTTPRequest * req, HTTPResponse * res) {
   res->println("</html>");
 }
 
+
+
+*/

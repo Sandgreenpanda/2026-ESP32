@@ -1,48 +1,159 @@
-#include "IPv6Address.h"
-#include "SPIFFS.h"
-#include "WiFi.h"
-#include "driver/uart.h"
-#include "esp_netif.h"
-#include "esp_vfs_dev.h"
-#include "libssh/priv.h"
-#include "libssh_esp32.h"
-#include "libssh_esp32_config.h"
-#include <Arduino.h>
-#include <WiFi.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <libssh/libssh.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/*
 
-extern const char *configSTASSID;
-extern const char *configSTAPSK;
+This Whole file is not my code, and while I have made minor modifications,
+It should be treated as an external library for marking purposes
+
+*/
+
+#include "IPv6Address.h"
+#include <ssh_functions.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
+#include <libssh/libssh.h>
+#include "libssh_esp32.h"
+
+String configSTASSID;
+String configSTAPSK;
+
 extern volatile bool wifiPhyConnected;
 
-#define newDevState(s) (devState = s)
-
-#define EX_CMD "exec"
+extern WiFiMulti wifiMulti;
 
 #define WIFI_TIMEOUT_S 10
 #define NET_WAIT_MS 100
 
-const unsigned int configSTACK = 51200;
+extern volatile devState_t devState;
+extern volatile bool gotIpAddr, gotIp6Addr;
+
+void wait_for_wifi_exec(std::function<int ()> exec_func) {
+    wifiPhyConnected = false;
+    
+    gotIpAddr = false;
+    gotIp6Addr = false;
 
 
-typedef enum {
-    STATE_NEW,
-    STATE_PHY_CONNECTED,
-    STATE_WAIT_IPADDR,
-    STATE_GOT_IPADDR,
-    STATE_OTA_UPDATING,
-    STATE_OTA_COMPLETE,
-    STATE_LISTENING,
-    STATE_TCP_DISCONNECTED
-} devState_t;
+    TickType_t xStartTime;
+    xStartTime = xTaskGetTickCount();
+    const TickType_t xTicksTimeout = WIFI_TIMEOUT_S * 1000 / portTICK_PERIOD_MS;
+    bool aborting;
 
-static volatile devState_t devState;
-static volatile bool gotIpAddr, gotIp6Addr;
+    while (1) {
+        // This whole loop is to wait for a wifi connection
+        switch (devState) {
+        case STATE_NEW:
+            vTaskDelay(NET_WAIT_MS / portTICK_PERIOD_MS);
+            break;
+        case STATE_PHY_CONNECTED:
+            devState = STATE_WAIT_IPADDR;
+            // Set the initial time, where timeout will be started
+            xStartTime = xTaskGetTickCount();
+            break;
+        case STATE_WAIT_IPADDR:
+            if (gotIpAddr && gotIp6Addr)
+                devState = STATE_GOT_IPADDR;
+            else {
+                // Check the timeout.
+                if (xTaskGetTickCount() >= xStartTime + xTicksTimeout) {
+                    printf("%% Timeout waiting for all IP addresses\n");
+                    if (gotIpAddr || gotIp6Addr)
+                        devState = STATE_GOT_IPADDR;
+                    else
+                        devState = STATE_NEW;
+                } else {
+                    vTaskDelay(NET_WAIT_MS / portTICK_PERIOD_MS);
+                }
+            }
+            break;
+        case STATE_GOT_IPADDR:
+            devState = STATE_OTA_UPDATING ;
+            break;
+        case STATE_OTA_UPDATING:
+            // No OTA for this sketch.
+            devState = STATE_OTA_COMPLETE ;
+            break;
+        case STATE_OTA_COMPLETE:
+            aborting = false;
+            // Initialize the Arduino library.
+            libssh_begin();
+            {
+                long start_millis = millis(); // Current time
+                printf("\n[SNIP STDOUT START]\n");
+                int ex_rc = exec_func();
+                printf("[SNIP STDOUT FINISH]\n");
+                printf("%% Execution completed: rc=%d, elapsed=%ldms\n",
+                       ex_rc, (long)millis() - start_millis);
+            }
+            while (1)
+                vTaskDelay(60000 / portTICK_PERIOD_MS);
+            // Finished the EXAMPLE main code.
+            if (!aborting)
+                devState = STATE_LISTENING;
+            else
+                devState = STATE_TCP_DISCONNECTED;
+            break;
+        case STATE_LISTENING:
+            aborting = false;
+            devState = STATE_TCP_DISCONNECTED;
+            break;
+        case STATE_TCP_DISCONNECTED:
+            // This would be the place to free net resources, if needed,
+            devState = STATE_LISTENING;
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void event_cb(void *args, esp_event_base_t base, int32_t id, void *event_data) {
+    switch (id) {
+    case WIFI_EVENT_STA_START:
+        Serial.println("Connecting to wifi...");
+        
+        break;
+    case WIFI_EVENT_STA_CONNECTED:
+        Serial.println("% WiFi connected");
+        //configSTASSID = WiFi.SSID();
+        //configSTAPSK = WiFi.psk();
+        //Serial.println(configSTASSID);
+        wifiPhyConnected = true;
+        if (devState < STATE_PHY_CONNECTED)
+            devState = STATE_PHY_CONNECTED;
+        break;
+    case WIFI_EVENT_STA_DISCONNECTED:
+        if (devState < STATE_WAIT_IPADDR)
+            devState = STATE_NEW;
+        if (wifiPhyConnected) {
+            Serial.println("% WiFi disconnected");
+            wifiPhyConnected = false;
+        }
+        wifiMulti.run();
+        Serial.println("Wifi disconnect. Reconnecting with wifiMulti");
+        //WiFi.begin(configSTASSID, configSTAPSK);
+        break;
+    case IP_EVENT_GOT_IP6: {
+        ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
+        if (event->ip6_info.ip.addr[0] != htons(0xFE80) && !gotIp6Addr) {
+            gotIp6Addr = true;
+        }
+        Serial.print("% IPv6 Address: ");
+
+        Serial.println(IPv6Address(event->ip6_info.ip.addr));
+    } break;
+    case IP_EVENT_STA_GOT_IP: {
+        WiFi.enableIpV6(); // Under IDF 5 we need to get IPv4 address first.
+
+        gotIpAddr = true;
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+        Serial.print("% IPv4 Address: ");
+        Serial.println(IPAddress(event->ip_info.ip.addr));
+    } break;
+    case IP_EVENT_STA_LOST_IP:
+        // gotIpAddr = false;
+    default:
+        break;
+    }
+}
 
 int authenticate_kbdint(ssh_session session, const char *password) {
     int err;

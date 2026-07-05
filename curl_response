@@ -1,0 +1,49 @@
+<html>
+<head>
+<title>Hwaci Homepage</title>
+</head>
+<body>
+<font size="7"><b>Hwaci</b></font>
+<hr>
+<p>
+Hipp, Wyrick &amp; Company, Inc., or "Hwaci" for short,
+is a small North Carolina company providing knowledge services to
+clients around the world since 1992.
+Hwaci is an S-Corporation owned by the husband and wife team of
+Richard Hipp and Ginger Wyrick.
+<p>
+In recent years, an important business focus of Hwaci has been
+the <a href="https://sqlite.org/">SQLite Database Engine</a>.  However,
+the company continues to provide other music and technology
+related services.
+
+<p>Contact information</p>
+
+<blockquote>
+<table width=100%>
+<tr>
+<td valign=top>
+By Phone:
+<blockquote>
++1.704.948.4565<br>
+</blockquote>
+</td><td> &nbsp; &nbsp; </td><td valign=top>
+By EMail:
+<blockquote>
+ drh@hwaci.com<br>
+ ggw@hwaci.com
+</blockquote>
+</td><td> &nbsp; &nbsp; </td><td valign=top>
+By Post:
+<blockquote>
+Hipp, Wyrick &amp; Company, Inc.<br>
+6200 Maple Cove Lane<br>
+Charlotte, NC 28269
+</blockquote>
+</td>
+</tr>
+</table>
+</blockquote>
+
+</body>
+</html>

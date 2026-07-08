@@ -19,7 +19,7 @@ extern volatile bool wifiPhyConnected;
 
 extern WiFiMulti wifiMulti;
 
-#define WIFI_TIMEOUT_S 10
+#define WIFI_TIMEOUT_S 20
 #define NET_WAIT_MS 100
 
 extern volatile devState_t devState;

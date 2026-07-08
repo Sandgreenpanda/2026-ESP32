@@ -101,7 +101,8 @@ int ex_main() {
         } else {
             vTaskDelay(1 / portTICK_PERIOD_MS);
             if (millis() - lastHandleKeepAlive >= 10000) {// Every 10 seconds
-                ssh_blocking_flush(session, 0);//ssh_handle_packets(session);
+                Serial.println("Keep Alive Check");
+                ssh_send_ignore(session, "keepalive");
                 lastHandleKeepAlive = millis();
             }
         }
@@ -276,13 +277,13 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->println("    const terminalContainer = document.getElementById('terminal');");
     res->println("    term.open(terminalContainer);");
 
-    res->println("    term.write('Welcome to Xterm.js Demo\\n');");
+    res->println("    term.write('Welcome to Xterm.js Demo\\n\\r$ ');");
 
     res->println("let command = '';");
 
-    res->println("term.onData(e => {if (e === '\\r') {handleCommand(command.trim());command = '';} else if (e === '\\x7F') {if (command.length > 0) {term.write('\\b \\b');command = command.slice(0, -1);}} else {term.write(e);command += e;}});");
+    res->println("term.onData(e => {if (e === '\\r') {term.write('\\n\\r');handleCommand(command.trim());command = '';} else if (e === '\\x7F') {if (command.length > 0) {term.write('\\b \\b');command = command.slice(0, -1);}} else {term.write(e);command += e;}});");
 
-    res->println("function handleCommand(input) {fetch('/terminal_post', {method:'post',headers: {'Accept': 'application/json','Content-Type': 'application/json'},body: JSON.stringify(input)}).then(response=>response.text()).then(data=>{ term.write(data.replaceAll('\\n', '\\r\\n'));console.log(data); })}");
+    res->println("function handleCommand(input) {fetch('/terminal_post', {method:'post',headers: {'Accept': 'application/json','Content-Type': 'application/json'},body: JSON.stringify(input)}).then(response=>response.text()).then(data=>{ term.write(data.trim().replaceAll('\\n', '\\r\\n'));console.log(data);term.write('\\r\\n$ ');})}");
 
     res->println("    </script>");
     res->println("</body>");

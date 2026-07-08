@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "esp32-hal.h"
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
@@ -9,12 +10,12 @@
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
 
-#define LAPTOP_HP_1 17
-#define LAPTOP_HP_2 16
-#define LAPTOP_HP_3 21
-#define LAPTOP_LENOVO_1 4
-#define LAPTOP_ACER_1 19
-#define LAPTOP_ACER_2 18
+#define LAPTOP_HP_1 33
+#define LAPTOP_HP_2 32
+#define LAPTOP_HP_3 12
+#define LAPTOP_LENOVO_1 27
+#define LAPTOP_ACER_1 26
+#define LAPTOP_ACER_2 25
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -28,6 +29,7 @@ HTTPSServer *secureServer;
 void handleRoot(HTTPRequest *req, HTTPResponse *res);
 void handle404(HTTPRequest *req, HTTPResponse *res);
 void handleTerminal(HTTPRequest *req, HTTPResponse *res);
+void handleTerminalPost(HTTPRequest *req, HTTPResponse *res);
 void handleToggle1(HTTPRequest *req, HTTPResponse *res);
 void handleToggle2(HTTPRequest *req, HTTPResponse *res);
 void handleToggle3(HTTPRequest *req, HTTPResponse *res);
@@ -41,7 +43,7 @@ volatile devState_t devState;
 volatile bool gotIpAddr, gotIp6Addr;
 volatile bool wifiPhyConnected;
 
-bool comunicating = false;
+String ssh_command = "";
 String shh_output_string = "";
 
 int ex_main() {
@@ -51,43 +53,60 @@ int ex_main() {
     int rbytes;
     int rc;
 
-    session = connect_ssh("Home1918", "192.168.1.71", "alext", 0);
+    int lastHandleKeepAlive = millis();
+
+    session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
     if (session == NULL) {
         ssh_finalize();
         return 1;
     }
-    channel = ssh_channel_new(session);
-    if (channel == NULL) {
-        ssh_disconnect(session);
-        ssh_free(session);
-        ssh_finalize();
-        return 1;
+
+    while (1) {
+        if (ssh_command != "") {
+            Serial.println("ssh cmd received");
+            Serial.println(ssh_command);
+            channel = ssh_channel_new(session);
+
+
+            rc = ssh_channel_open_session(channel);
+            //if (rc < 0) {
+            //    goto failed;
+            //}
+            rc = ssh_channel_request_exec(channel, ssh_command.c_str());
+            // if (rc < 0) {
+            //     goto failed;
+            //  }
+            Serial.println(rc);
+            // Reads the ssh output
+            shh_output_string = "";
+            rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+            Serial.println("response 1");
+            do {
+                Serial.println("response loop");
+                shh_output_string += String(buffer, rbytes);
+                rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+                Serial.println(rbytes);
+            } while (rbytes > 0);
+
+            // Prints the ssh output
+            Serial.println(shh_output_string);
+
+            ssh_command = ""; // Reset command to prevent infinite loop
+
+            ssh_channel_send_eof(channel);
+            ssh_channel_close(channel);
+            ssh_channel_free(channel);
+            Serial.println("ssh command processing finished");
+
+        } else {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+            if (millis() - lastHandleKeepAlive >= 10000) {// Every 10 seconds
+                ssh_blocking_flush(session, 0);//ssh_handle_packets(session);
+                lastHandleKeepAlive = millis();
+            }
+        }
     }
 
-    rc = ssh_channel_open_session(channel);
-    if (rc < 0) {
-        goto failed;
-    }
-
-    rc = ssh_channel_request_exec(channel, "ls");
-    if (rc < 0) {
-        goto failed;
-    }
-
-    // Reads the ssh output
-    shh_output_string = "";
-    rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-    do {
-        shh_output_string += String(buffer, rbytes);
-        rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-    } while (rbytes > 0);
-
-    // Prints the ssh output
-    Serial.println(shh_output_string);
-
-    ssh_channel_send_eof(channel);
-    ssh_channel_close(channel);
-    ssh_channel_free(channel);
     ssh_disconnect(session);
     ssh_free(session);
     ssh_finalize();
@@ -162,6 +181,7 @@ void setup() {
     esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, event_cb, NULL, NULL);
 
     // Stack size needs to be larger, so continue in a new task.
+
     xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, portNUM_PROCESSORS - 1);
 
     secureServer = new HTTPSServer(cert);
@@ -169,6 +189,7 @@ void setup() {
     ResourceNode *nodeRoot = new ResourceNode("/", "GET", &handleRoot);
     ResourceNode *node404 = new ResourceNode("", "GET", &handle404);
     ResourceNode *nodeTerminal = new ResourceNode("/terminal", "GET", &handleTerminal);
+    ResourceNode *nodeTerminalPost = new ResourceNode("/terminal_post", "POST", &handleTerminalPost);
     ResourceNode *nodeToggle1 = new ResourceNode("/toggle1", "POST", &handleToggle1);
     ResourceNode *nodeToggle2 = new ResourceNode("/toggle2", "POST", &handleToggle2);
     ResourceNode *nodeToggle3 = new ResourceNode("/toggle3", "POST", &handleToggle3);
@@ -182,6 +203,7 @@ void setup() {
     secureServer->setDefaultNode(node404);
     // Add Terminal node
     secureServer->registerNode(nodeTerminal);
+    secureServer->registerNode(nodeTerminalPost);
 
     secureServer->registerNode(nodeToggle1);
     secureServer->registerNode(nodeToggle2);
@@ -256,12 +278,53 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
 
     res->println("    term.write('Welcome to Xterm.js Demo\\n');");
 
+    res->println("let command = '';");
+
+    res->println("term.onData(e => {if (e === '\\r') {handleCommand(command.trim());command = '';} else if (e === '\\x7F') {if (command.length > 0) {term.write('\\b \\b');command = command.slice(0, -1);}} else {term.write(e);command += e;}});");
+
+    res->println("function handleCommand(input) {fetch('/terminal_post', {method:'post',headers: {'Accept': 'application/json','Content-Type': 'application/json'},body: JSON.stringify(input)}).then(response=>response.text()).then(data=>{ term.write(data.replaceAll('\\n', '\\r\\n'));console.log(data); })}");
+
     res->println("    </script>");
     res->println("</body>");
     res->println("</html>");
 };
 
+void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
+    // The echo callback will return the request body as response body.
+
+    // We use text/plain for the response
+    res->setHeader("Content-Type", "text/plain");
+
+    // Stream the incoming request body to the response body
+    // Theoretically, this should work for every request size.
+    byte buffer[256];
+    // HTTPReqeust::requestComplete can be used to check whether the
+    // body has been parsed completely.
+    String shh_input_string = "";
+    while (!(req->requestComplete())) {
+        // HTTPRequest::readBytes provides access to the request body.
+        // It requires a buffer, the max buffer length and it will return
+        // the amount of bytes that have been written to the buffer.
+        size_t s = req->readBytes(buffer, 256);
+
+        // The response does not only implement the Print interface to
+        // write character data to the response but also the write function
+        // to write binary data to the response.
+        shh_input_string += String(buffer, s);
+        //res->write(buffer, s);
+    }
+    Serial.println(shh_input_string);
+    ssh_command = shh_input_string.substring(1, shh_input_string.length() - 1);
+    while (ssh_command != "") {
+        delay(1);
+    }
+    res->println(shh_output_string);
+    shh_output_string = "";
+}
+
 void handleToggle1(HTTPRequest *req, HTTPResponse *res) {
+    ssh_command = "ls"; // Execute command
+
     Serial.println("1");
     digitalWrite(LAPTOP_HP_1, HIGH);
     delay(1000);

@@ -53,6 +53,11 @@ int ex_main() {
     int rbytes;
     int rc;
 
+    int nbytes;
+    int nwritten;
+
+    int writeBufferSize;
+
     int lastHandleKeepAlive = millis();
 
     session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
@@ -61,12 +66,52 @@ int ex_main() {
         return 1;
     }
 
+    channel = ssh_channel_new(session);
+
+    rc = ssh_channel_open_session(channel);
+    if (rc != SSH_OK) {
+        Serial.println("Open Fail");
+        goto failed;
+    }
+
+    rc = ssh_channel_request_pty(channel);
+    if (rc != SSH_OK) {
+        Serial.println("Request Fail");
+        goto failed;
+    }
+    rc = ssh_channel_change_pty_size(channel, 100, 30);
+    if (rc != SSH_OK) {
+        Serial.println("Resize Fail");
+        goto failed;
+    }
+    rc = ssh_channel_request_shell(channel);
+    if (rc != SSH_OK) {
+        goto failed;
+        Serial.println("Shell Fail");
+    }
     while (1) {
+        // nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+     //   nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+
+       // if (nbytes > 0) {
+        //    shh_output_string = String(buffer, nbytes);
+         //   Serial.println(shh_output_string);
+       // }
+
         if (ssh_command != "") {
             Serial.println("ssh cmd received");
             Serial.println(ssh_command);
-            channel = ssh_channel_new(session);
+            // channel = ssh_channel_new(session);
 
+            // Better ssh start:
+
+            // Put the command bytes the format ssh write wants
+
+            ssh_command += "\n";
+
+            ssh_channel_write(channel, ssh_command.c_str(), ssh_command.length());
+
+            /*
 
             rc = ssh_channel_open_session(channel);
             //if (rc < 0) {
@@ -81,26 +126,37 @@ int ex_main() {
             shh_output_string = "";
             rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
             Serial.println("response 1");
+
+
+            */
+
+            // Prints the ssh output
+            //  Serial.println(shh_output_string);
+         //   shh_output_string = "";
+            rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+
+            if (rbytes > 0) {
+                shh_output_string = String(buffer, rbytes);
+            }
             do {
                 Serial.println("response loop");
                 shh_output_string += String(buffer, rbytes);
-                rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+                rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
                 Serial.println(rbytes);
             } while (rbytes > 0);
 
-            // Prints the ssh output
             Serial.println(shh_output_string);
 
             ssh_command = ""; // Reset command to prevent infinite loop
 
-            ssh_channel_send_eof(channel);
-            ssh_channel_close(channel);
-            ssh_channel_free(channel);
+            //  ssh_channel_send_eof(channel);
+            // ssh_channel_close(channel);
+            // ssh_channel_free(channel);
             Serial.println("ssh command processing finished");
 
         } else {
             vTaskDelay(1 / portTICK_PERIOD_MS);
-            if (millis() - lastHandleKeepAlive >= 10000) {// Every 10 seconds
+            if (millis() - lastHandleKeepAlive >= 10000) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
                 ssh_send_ignore(session, "keepalive");
                 lastHandleKeepAlive = millis();
@@ -150,9 +206,6 @@ void setup() {
 
     devState = STATE_NEW;
 
-    // Use the expected blocking I/O behavior.
-    // setvbuf(stdin, NULL, _IONBF, 0);
-    // setvbuf(stdout, NULL, _IONBF, 0);
     Serial.begin(115200);
 
     Serial.println("Creating a new self-signed certificate.");
@@ -273,7 +326,7 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
 
     res->println("    <script>");
 
-    res->println("    const term = new Terminal();");
+    res->println("    const term = new Terminal({rows: 30,cols: 100});");
     res->println("    const terminalContainer = document.getElementById('terminal');");
     res->println("    term.open(terminalContainer);");
 
@@ -312,7 +365,7 @@ void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
         // write character data to the response but also the write function
         // to write binary data to the response.
         shh_input_string += String(buffer, s);
-        //res->write(buffer, s);
+        // res->write(buffer, s);
     }
     Serial.println(shh_input_string);
     ssh_command = shh_input_string.substring(1, shh_input_string.length() - 1);

@@ -10,6 +10,8 @@
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
 
+#include <lwip/sockets.h>
+
 #define LAPTOP_HP_1 33
 #define LAPTOP_HP_2 32
 #define LAPTOP_HP_3 12
@@ -36,6 +38,11 @@ void handleToggle3(HTTPRequest *req, HTTPResponse *res);
 void handleToggle4(HTTPRequest *req, HTTPResponse *res);
 void handleToggle5(HTTPRequest *req, HTTPResponse *res);
 void handleToggle6(HTTPRequest *req, HTTPResponse *res);
+void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
+
+// List of clients that signed up for sse
+std::vector<httpsserver::HTTPResponse*> sseClients;
+//std::vector<int> sseClients;
 
 const unsigned int configSTACK = 51200;
 
@@ -45,6 +52,9 @@ volatile bool wifiPhyConnected;
 
 String ssh_command = "";
 String shh_output_string = "";
+
+String shh_output_send = "";
+String shh_output_send_temp = "";
 
 int ex_main() {
     ssh_session session = NULL;
@@ -91,12 +101,45 @@ int ex_main() {
     }
     while (1) {
         // nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-     //   nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+        //   nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
-       // if (nbytes > 0) {
+        // if (nbytes > 0) {
         //    shh_output_string = String(buffer, nbytes);
-         //   Serial.println(shh_output_string);
-       // }
+        //   Serial.println(shh_output_string);
+        // }
+
+        rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+
+        if (rbytes > 0) {
+            shh_output_send_temp = String(buffer, rbytes);
+        }
+
+        do {
+            Serial.println("response loop");
+            shh_output_send_temp += String(buffer, rbytes);
+            rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+            Serial.println(rbytes);
+        } while (rbytes > 0);
+
+        Serial.println(shh_output_send_temp);
+        // shh_output_send = shh_output_send_temp; // Sends the data for processing
+
+        // This loop goes though ever client and attempts to update it with the new ssh data
+        // If the client does not respond it is assumed disconnected and is removed
+        for (auto client = sseClients.begin(); client != sseClients.end();) { // Note there is no auto increment, this is done manually
+            size_t bytesWritten = (*client)->print(shh_output_send_temp);
+            //int bytesWritten = lwip_send((*client), shh_output_send_temp.c_str(), shh_output_send_temp.length(), MSG_DONTWAIT);
+
+            if (bytesWritten <= 0 && shh_output_send_temp != "") { // Less than 0 is error code, and 0 is no bytes written.
+                                                                   // We also make sure we actually were writing bytes to prevent false positives
+
+                // Removes the item, as the client has disconnected. Sets the iterator to the next valid client
+                delete *client;
+                client = sseClients.erase(client);
+            } else {
+                client++;
+            }
+        }
 
         if (ssh_command != "") {
             Serial.println("ssh cmd received");
@@ -132,7 +175,7 @@ int ex_main() {
 
             // Prints the ssh output
             //  Serial.println(shh_output_string);
-         //   shh_output_string = "";
+            //   shh_output_string = "";
             rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
             if (rbytes > 0) {
@@ -251,6 +294,8 @@ void setup() {
     ResourceNode *nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
     ResourceNode *nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
 
+    ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
+
     // Add the root node to the server
     secureServer->registerNode(nodeRoot);
     // Add the 404 not found node to the server.
@@ -265,6 +310,8 @@ void setup() {
     secureServer->registerNode(nodeToggle4);
     secureServer->registerNode(nodeToggle5);
     secureServer->registerNode(nodeToggle6);
+
+    secureServer->registerNode(nodeHandleTerminalUpdate);
 
     Serial.println("Starting server...");
     secureServer->start();
@@ -342,6 +389,41 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->println("</body>");
     res->println("</html>");
 };
+
+void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
+    // sse headers
+
+   //  res->setChunkedTransferMode();
+    res->setHeader("Content-Type", "text/event-stream");
+    res->setHeader("Cache-Control", "no-cache");
+    res->setHeader("Connection", "keep-alive");
+
+    // This code adds res to the list of clients that get sse updates
+    res->print(""); // Force submit the headers
+
+   // int rawSocketFd = req->getClientStartData()->_socket; 
+    sseClients.push_back(res); // res is a pointer.
+
+
+    while(1) {
+        vTaskDelay(pdMS_TO_TICKS(50));
+    } 
+    // A client is removed upon a bad res->print in the ssh loop
+
+    // res->flush();
+
+    // This code was bad and blocked the whole thread
+    /*
+    while (1) {
+        if (shh_output_send != "") {
+            // res->write((uint8_t *)shh_output_send.c_str(), shh_output_send.length());
+            res->print(shh_output_send);
+            shh_output_send = "";
+        }
+        delay(10); // Let the esp complete other tasks in this thread
+    }
+    */
+}
 
 void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
     // The echo callback will return the request body as response body.
@@ -434,3 +516,26 @@ void handle404(HTTPRequest *req, HTTPResponse *res) {
     res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
     res->println("</html>");
 }
+
+
+// SD card test:
+
+/*
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#define SD_MISO 2
+#define SD_MOSI 15
+#define SD_SCK 14
+#define SD_CS 13
+SPIClass sdSPI = SPIClass(HSPI);
+void setup() {
+    Serial.begin(115200);
+    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+    if (!SD.begin(SD_CS, sdSPI)) {
+        Serial.println("SD mount failed");
+    } else {
+        Serial.println("SD mount successful");
+    }
+}
+*/

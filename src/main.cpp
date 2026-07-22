@@ -12,6 +12,14 @@
 
 #include <lwip/sockets.h>
 
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#define SD_MISO 16
+#define SD_SCK 17
+#define SD_MOSI 18
+#define SD_CS 19
+
 #define LAPTOP_HP_1 33
 #define LAPTOP_HP_2 32
 #define LAPTOP_HP_3 12
@@ -19,8 +27,11 @@
 #define LAPTOP_ACER_1 26
 #define LAPTOP_ACER_2 25
 
-#define PWM_FAN_1 19
-#define TACH_FAN_1 18
+#define PWM_FAN_1 23
+#define TACH_FAN_1 22
+
+// Spi for the sd card file system
+SPIClass sdSPI(VSPI); 
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -268,8 +279,15 @@ void setup() {
     pinMode(TACH_FAN_1, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(TACH_FAN_1), tachISR, FALLING);
   
-    // Initialize timing
+    // Initialize timing for fan tach
     lastTachTime = millis();
+
+    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+    if (!SD.begin(SD_CS, sdSPI)) {
+        Serial.println("SD mount failed");
+    } else {
+        Serial.println("SD mount successful");
+    }
 
     WiFi.disconnect(true);
     wifiMulti.addAP("WC Devices", "iujonmhmjm");
@@ -564,25 +582,3 @@ void handle404(HTTPRequest *req, HTTPResponse *res) {
     res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
     res->println("</html>");
 }
-
-// SD card test:
-
-/*
-#include <FS.h>
-#include <SD.h>
-#include <SPI.h>
-#define SD_MISO 2
-#define SD_MOSI 15
-#define SD_SCK 14
-#define SD_CS 13
-SPIClass sdSPI = SPIClass(HSPI);
-void setup() {
-    Serial.begin(115200);
-    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-    if (!SD.begin(SD_CS, sdSPI)) {
-        Serial.println("SD mount failed");
-    } else {
-        Serial.println("SD mount successful");
-    }
-}
-*/

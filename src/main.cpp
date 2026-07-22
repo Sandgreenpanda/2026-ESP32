@@ -20,14 +20,24 @@
 #define LAPTOP_ACER_2 25
 
 #define PWM_FAN_1 19
+#define TACH_FAN_1 18
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
 
 WiFiMulti wifiMulti;
 
+// Fan settings
 const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
 const int PWM_RESOLUTION = 8;
+volatile unsigned long tachPulseCount = 0;
+unsigned long lastTachTime = 0;
+const unsigned long TACH_SAMPLE_TIME = 1000;  // Sample period in milliseconds
+
+// Interrupt service routine for tachometer
+void IRAM_ATTR tachISR() {
+  tachPulseCount = tachPulseCount + 1;
+}
 
 SSLCert *cert;
 HTTPSServer *secureServer;
@@ -254,6 +264,13 @@ void setup() {
     ledcAttachPin(PWM_FAN_1, 0);
     ledcWrite(0, 0); // Set initial fan speed to zero
 
+    // Configure tachometer pin with interrupt
+    pinMode(TACH_FAN_1, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(TACH_FAN_1), tachISR, FALLING);
+  
+    // Initialize timing
+    lastTachTime = millis();
+
     WiFi.disconnect(true);
     wifiMulti.addAP("WC Devices", "iujonmhmjm");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
@@ -338,6 +355,13 @@ void setup() {
 void loop() {
     secureServer->loop();
     delay(1);
+    if (millis() - lastTachTime >= TACH_SAMPLE_TIME) {
+        // Calculate RPM (2 pulses per revolution for most fans)
+        unsigned long rpm = (tachPulseCount * 60000) / (TACH_SAMPLE_TIME * 2);
+        Serial.println(rpm);
+        tachPulseCount = 0;
+        lastTachTime = millis();
+    }
 }
 
 void handleRoot(HTTPRequest *req, HTTPResponse *res) {

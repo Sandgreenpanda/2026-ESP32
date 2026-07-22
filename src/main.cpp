@@ -19,10 +19,15 @@
 #define LAPTOP_ACER_1 26
 #define LAPTOP_ACER_2 25
 
+#define PWM_FAN_1 19
+
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
 
 WiFiMulti wifiMulti;
+
+const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
+const int PWM_RESOLUTION = 8;
 
 SSLCert *cert;
 HTTPSServer *secureServer;
@@ -38,11 +43,12 @@ void handleToggle3(HTTPRequest *req, HTTPResponse *res);
 void handleToggle4(HTTPRequest *req, HTTPResponse *res);
 void handleToggle5(HTTPRequest *req, HTTPResponse *res);
 void handleToggle6(HTTPRequest *req, HTTPResponse *res);
+void handleFan(HTTPRequest *req, HTTPResponse *res);
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
 
 // List of clients that signed up for sse
-std::vector<httpsserver::HTTPResponse*> sseClients;
-//std::vector<int> sseClients;
+std::vector<httpsserver::HTTPResponse *> sseClients;
+// std::vector<int> sseClients;
 
 const unsigned int configSTACK = 51200;
 
@@ -128,7 +134,7 @@ int ex_main() {
         // If the client does not respond it is assumed disconnected and is removed
         for (auto client = sseClients.begin(); client != sseClients.end();) { // Note there is no auto increment, this is done manually
             size_t bytesWritten = (*client)->print(shh_output_send_temp);
-            //int bytesWritten = lwip_send((*client), shh_output_send_temp.c_str(), shh_output_send_temp.length(), MSG_DONTWAIT);
+            // int bytesWritten = lwip_send((*client), shh_output_send_temp.c_str(), shh_output_send_temp.length(), MSG_DONTWAIT);
 
             if (bytesWritten <= 0 && shh_output_send_temp != "") { // Less than 0 is error code, and 0 is no bytes written.
                                                                    // We also make sure we actually were writing bytes to prevent false positives
@@ -242,6 +248,12 @@ void setup() {
     pinMode(LAPTOP_ACER_1, OUTPUT);
     pinMode(LAPTOP_ACER_2, OUTPUT);
 
+    // Setup fans
+    // First pin is declared to use chanel 0
+    ledcSetup(0, PWM_FREQ, PWM_RESOLUTION);
+    ledcAttachPin(PWM_FAN_1, 0);
+    ledcWrite(0, 0); // Set initial fan speed to zero
+
     WiFi.disconnect(true);
     wifiMulti.addAP("WC Devices", "iujonmhmjm");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
@@ -294,6 +306,8 @@ void setup() {
     ResourceNode *nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
     ResourceNode *nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
 
+    ResourceNode *nodeHandleFan = new ResourceNode("/fan", "POST", &handleFan);
+
     ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
 
     // Add the root node to the server
@@ -310,6 +324,7 @@ void setup() {
     secureServer->registerNode(nodeToggle4);
     secureServer->registerNode(nodeToggle5);
     secureServer->registerNode(nodeToggle6);
+    secureServer->registerNode(nodeHandleFan);
 
     secureServer->registerNode(nodeHandleTerminalUpdate);
 
@@ -371,6 +386,8 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->println("<form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>");
     res->println("<form action='/toggle6' method='post' target='dummyframe'>Toggle HP 3<input type='submit'></form>");
 
+    res->println("<form action='/fan' method='post' target='dummyframe'><input type='number' id='speed' name='speed' min='0' max='255'>Submit fan speed<input type='submit'></form>");
+
     res->println("    <script>");
 
     res->println("    const term = new Terminal({rows: 30,cols: 100});");
@@ -393,7 +410,7 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
     // sse headers
 
-   //  res->setChunkedTransferMode();
+    //  res->setChunkedTransferMode();
     res->setHeader("Content-Type", "text/event-stream");
     res->setHeader("Cache-Control", "no-cache");
     res->setHeader("Connection", "keep-alive");
@@ -401,13 +418,12 @@ void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
     // This code adds res to the list of clients that get sse updates
     res->print(""); // Force submit the headers
 
-   // int rawSocketFd = req->getClientStartData()->_socket; 
+    // int rawSocketFd = req->getClientStartData()->_socket;
     sseClients.push_back(res); // res is a pointer.
 
-
-    while(1) {
+    while (1) {
         vTaskDelay(pdMS_TO_TICKS(50));
-    } 
+    }
     // A client is removed upon a bad res->print in the ssh loop
 
     // res->flush();
@@ -426,9 +442,6 @@ void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
 }
 
 void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
-    // The echo callback will return the request body as response body.
-
-    // We use text/plain for the response
     res->setHeader("Content-Type", "text/plain");
 
     // Stream the incoming request body to the response body
@@ -458,9 +471,20 @@ void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
     shh_output_string = "";
 }
 
-void handleToggle1(HTTPRequest *req, HTTPResponse *res) {
-    ssh_command = "ls"; // Execute command
+void handleFan(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/plain");
+    byte buffer[256];
 
+    String fanSpeedInput = "";
+    while (!(req->requestComplete())) {
+        size_t s = req->readBytes(buffer, 256);
+        fanSpeedInput += String(buffer, s);
+    }
+    ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
+    Serial.println(fanSpeedInput.substring(6).toInt());
+}
+
+void handleToggle1(HTTPRequest *req, HTTPResponse *res) {
     Serial.println("1");
     digitalWrite(LAPTOP_HP_1, HIGH);
     delay(1000);
@@ -516,7 +540,6 @@ void handle404(HTTPRequest *req, HTTPResponse *res) {
     res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
     res->println("</html>");
 }
-
 
 // SD card test:
 

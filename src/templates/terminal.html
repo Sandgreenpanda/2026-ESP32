@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esp32 Website</title>
+    <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css">
+    <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+</head>
+
+<body>
+    <div id="terminal"></div>
+    <iframe name='dummyframe' id='dummyframe' style='display: none;'></iframe>
+    <form action='/toggle1' method='post' target='dummyframe'>Toggle HP 1<input type='submit'></form>
+    <form action='/toggle2' method='post' target='dummyframe'>Toggle HP 2<input type='submit'></form>
+    <form action='/toggle3' method='post' target='dummyframe'>Toggle Lenvo 1<input type='submit'></form>
+    <form action='/toggle4' method='post' target='dummyframe'>Toggle Acer 1<input type='submit'></form>
+    <form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>
+    <form action='/toggle6' method='post' target='dummyframe'>Toggle HP 3<input type='submit'></form>
+    <form action='/fan' method='post' target='dummyframe'><input type='number' id='speed' name='speed' min='0'
+            max='255'>Submit fan speed<input type='submit'></form>
+    <script>
+        const term = new Terminal({ rows: 30, cols: 100 });
+        const terminalContainer = document.getElementById('terminal');
+        term.open(terminalContainer);
+        term.write('Welcome to Xterm.js Demo\n\r$ ');
+        let command = '';
+        term.onData(e => {
+            if (e === '\r') {
+                term.write('\n\r');
+                handleCommand(command.trim()); command = '';
+            } else if (e === '\x7F') {
+                if (command.length > 0) {
+                    term.write('\b \b');
+                    command = command.slice(0, -1);
+                }
+            } else {
+                term.write(e); command += e;
+
+            }
+        });
+        function handleCommand(input) {
+            fetch('/terminal_post', {
+                method: 'post', headers: {
+                    'Accept': 'application/json', 'Content-Type': 'application/json'
+                }, body: JSON.stringify(input)
+            }).then(response => response.text()).then(data => {
+                term.write(data.trim().replaceAll('\n', '\r\n')); console.log(data); term.write('\r\n$ ');
+            })
+        }
+    </script>
+</body>
+
+</html>

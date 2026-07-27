@@ -31,7 +31,7 @@
 #define TACH_FAN_1 22
 
 // Spi for the sd card file system
-SPIClass sdSPI(VSPI); 
+SPIClass sdSPI(VSPI);
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -43,11 +43,11 @@ const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
 const int PWM_RESOLUTION = 8;
 volatile unsigned long tachPulseCount = 0;
 unsigned long lastTachTime = 0;
-const unsigned long TACH_SAMPLE_TIME = 1000;  // Sample period in milliseconds
+const unsigned long TACH_SAMPLE_TIME = 1000; // Sample period in milliseconds
 
 // Interrupt service routine for tachometer
 void IRAM_ATTR tachISR() {
-  tachPulseCount = tachPulseCount + 1;
+    tachPulseCount = tachPulseCount + 1;
 }
 
 SSLCert *cert;
@@ -278,19 +278,13 @@ void setup() {
     // Configure tachometer pin with interrupt
     pinMode(TACH_FAN_1, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(TACH_FAN_1), tachISR, FALLING);
-  
+
     // Initialize timing for fan tach
     lastTachTime = millis();
 
-    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-    if (!SD.begin(SD_CS, sdSPI)) {
-        Serial.println("SD mount failed");
-    } else {
-        Serial.println("SD mount successful");
-    }
-
     WiFi.disconnect(true);
-    wifiMulti.addAP("WC Devices", "iujonmhmjm");
+    Serial.print("Connecting to wifi (new)");
+    wifiMulti.addAP("WC Devices", "0jebr9yrxh");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
     wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
 
@@ -317,6 +311,13 @@ void setup() {
             delay(500);
     }
     Serial.println("Creating the certificate was successful");
+
+    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+    if (!SD.begin(SD_CS, sdSPI)) {
+        Serial.println("SD mount failed");
+    } else {
+        Serial.println("SD mount successful");
+    }
 
     // Initialise the custom wifi event handler, which allows wait_for_wifi_exec to know when the ipv4 and v6 addresses have been set.
     esp_netif_init();
@@ -407,46 +408,7 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     // We want to deliver a simple HTML page, so we send a corresponding content type:
     res->setHeader("Content-Type", "text/html");
 
-    // The response implements the Print interface, so you can use it just like
-    // you would write to Serial etc.
-    res->println("<!DOCTYPE html>");
-    res->println("<html lang=\"en\">");
-    res->println("<head>");
-    res->println("    <meta charset=\"UTF-8\">");
-    res->println("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-    res->println("    <title>Xterm.js Demo</title>");
-    res->println("    <link rel=\"stylesheet\" href=\"https://unpkg.com/xterm/css/xterm.css\" />");
-    res->println("    <script src=\"https://unpkg.com/xterm/lib/xterm.js\"></script>");
-    res->println("</head>");
-    res->println("<body>");
-    res->println("    <div id=\"terminal\"></div>");
-    res->println("<iframe name='dummyframe' id='dummyframe' style='display: none;'></iframe>");
-    res->println("<form action='/toggle1' method='post' target='dummyframe'>Toggle HP 1<input type='submit'></form>");
-    res->println("<form action='/toggle2' method='post' target='dummyframe'>Toggle HP 2<input type='submit'></form>");
-    res->println("<form action='/toggle3' method='post' target='dummyframe'>Toggle Lenvo 1<input type='submit'></form>");
-    res->println("<form action='/toggle4' method='post' target='dummyframe'>Toggle Acer 1<input type='submit'></form>");
-    res->println("<form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>");
-    res->println("<form action='/toggle6' method='post' target='dummyframe'>Toggle HP 3<input type='submit'></form>");
-
-    res->println("<form action='/fan' method='post' target='dummyframe'><input type='number' id='speed' name='speed' min='0' max='255'>Submit fan speed<input type='submit'></form>");
-
-    res->println("    <script>");
-
-    res->println("    const term = new Terminal({rows: 30,cols: 100});");
-    res->println("    const terminalContainer = document.getElementById('terminal');");
-    res->println("    term.open(terminalContainer);");
-
-    res->println("    term.write('Welcome to Xterm.js Demo\\n\\r$ ');");
-
-    res->println("let command = '';");
-
-    res->println("term.onData(e => {if (e === '\\r') {term.write('\\n\\r');handleCommand(command.trim());command = '';} else if (e === '\\x7F') {if (command.length > 0) {term.write('\\b \\b');command = command.slice(0, -1);}} else {term.write(e);command += e;}});");
-
-    res->println("function handleCommand(input) {fetch('/terminal_post', {method:'post',headers: {'Accept': 'application/json','Content-Type': 'application/json'},body: JSON.stringify(input)}).then(response=>response.text()).then(data=>{ term.write(data.trim().replaceAll('\\n', '\\r\\n'));console.log(data);term.write('\\r\\n$ ');})}");
-
-    res->println("    </script>");
-    res->println("</body>");
-    res->println("</html>");
+    res->println(SD.open("/templates/terminal.html", FILE_READ).readString());
 };
 
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {

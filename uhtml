@@ -26,6 +26,8 @@ sudo mkdir -p "/run/media/alext/esp32 Drive"
 sleep 2
 sudo mount -o uid=alext,gid=alext -t vfat /dev/mmcblk0p1 "/run/media/alext/esp32 Drive"
 sudo cp -r src/templates "/run/media/alext/esp32 Drive"
+sudo cp -r src/static "/run/media/alext/esp32 Drive"
+sudo umount /dev/mmcblk0p1
 sync
 echo "Transfer complete!"
 # ====== Bash Script End ======

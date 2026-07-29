@@ -7,19 +7,17 @@
     <title>Esp32 Website</title>
     <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css">
     <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
+    <ul>
+        <li><a href="/">home</a></li>
+        <li><a class='selected' href="/terminal">Terminal</a></li>
+        <li><a href="/computers">Computers on/off</a></li>
+    </ul>
     <div id="terminal"></div>
-    <iframe name='dummyframe' id='dummyframe' style='display: none;'></iframe>
-    <form action='/toggle1' method='post' target='dummyframe'>Toggle HP 1<input type='submit'></form>
-    <form action='/toggle2' method='post' target='dummyframe'>Toggle HP 2<input type='submit'></form>
-    <form action='/toggle3' method='post' target='dummyframe'>Toggle Lenvo 1<input type='submit'></form>
-    <form action='/toggle4' method='post' target='dummyframe'>Toggle Acer 1<input type='submit'></form>
-    <form action='/toggle5' method='post' target='dummyframe'>Toggle Acer 2<input type='submit'></form>
-    <form action='/toggle6' method='post' target='dummyframe'>Toggle HP 3<input type='submit'></form>
-    <form action='/fan' method='post' target='dummyframe'><input type='number' id='speed' name='speed' min='0'
-            max='255'>Submit fan speed<input type='submit'></form>
+    
     <script>
         const term = new Terminal({ rows: 30, cols: 100 });
         const terminalContainer = document.getElementById('terminal');

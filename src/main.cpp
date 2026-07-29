@@ -1,4 +1,5 @@
 #include "HardwareSerial.h"
+#include "esp32-hal-ledc.h"
 #include "esp32-hal.h"
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
@@ -65,7 +66,9 @@ void handleToggle4(HTTPRequest *req, HTTPResponse *res);
 void handleToggle5(HTTPRequest *req, HTTPResponse *res);
 void handleToggle6(HTTPRequest *req, HTTPResponse *res);
 void handleFan(HTTPRequest *req, HTTPResponse *res);
+void handleStyle(HTTPRequest *req, HTTPResponse *res);
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
+void handleComputers(HTTPRequest *req, HTTPResponse *res);
 
 // List of clients that signed up for sse
 std::vector<httpsserver::HTTPResponse *> sseClients;
@@ -343,6 +346,8 @@ void setup() {
     ResourceNode *nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
 
     ResourceNode *nodeHandleFan = new ResourceNode("/fan", "POST", &handleFan);
+    ResourceNode *nodeHandleStyle = new ResourceNode("/style.css", "GET", &handleStyle);
+    ResourceNode *nodeHandleComputers = new ResourceNode("/computers", "GET", &handleComputers);
 
     ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
 
@@ -361,6 +366,9 @@ void setup() {
     secureServer->registerNode(nodeToggle5);
     secureServer->registerNode(nodeToggle6);
     secureServer->registerNode(nodeHandleFan);
+    secureServer->registerNode(nodeHandleComputers);
+
+    secureServer->registerNode(nodeHandleStyle);
 
     secureServer->registerNode(nodeHandleTerminalUpdate);
 
@@ -384,24 +392,17 @@ void loop() {
 }
 
 void handleRoot(HTTPRequest *req, HTTPResponse *res) {
-    // Status code is 200 OK by default.
-    // We want to deliver a simple HTML page, so we send a corresponding content type:
     res->setHeader("Content-Type", "text/html");
-
-    // The response implements the Print interface, so you can use it just like
-    // you would write to Serial etc.
-    res->println("<!DOCTYPE html>");
-    res->println("<html>");
-    res->println("<head><title>Hello World!</title></head>");
-    res->println("<body>");
-    res->println("<h1>Hello World!</h1>");
-    res->print("<p>Your server is running for ");
-    // A bit of dynamic data: Show the uptime
-    res->print((int)(millis() / 1000), DEC);
-    res->println(" seconds.</p>");
-    res->println("</body>");
-    res->println("</html>");
+    String file = SD.open("/templates/home.html", FILE_READ).readString();
+    file.replace("%TIME%", (String)((int)(millis() / 1000)));
+    res->println(file);
 }
+
+void handleStyle(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/css");
+    res->println(SD.open("/static/style.css", FILE_READ).readString());
+    
+};
 
 void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     // Status code is 200 OK by default.
@@ -409,6 +410,11 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
 
     res->println(SD.open("/templates/terminal.html", FILE_READ).readString());
+};
+
+void handleComputers(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/html");
+    res->println(SD.open("/templates/computers.html", FILE_READ).readString());
 };
 
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
@@ -484,8 +490,9 @@ void handleFan(HTTPRequest *req, HTTPResponse *res) {
         size_t s = req->readBytes(buffer, 256);
         fanSpeedInput += String(buffer, s);
     }
-    ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
-    Serial.println(fanSpeedInput.substring(6).toInt());
+    ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
+    //ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
+    //Serial.println(fanSpeedInput.substring(6).toInt());
 }
 
 void handleToggle1(HTTPRequest *req, HTTPResponse *res) {

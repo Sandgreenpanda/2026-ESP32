@@ -286,7 +286,6 @@ void setup() {
     lastTachTime = millis();
 
     WiFi.disconnect(true);
-    Serial.print("Connecting to wifi (new)");
     wifiMulti.addAP("WC Devices", "0jebr9yrxh");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
     wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
@@ -401,7 +400,6 @@ void handleRoot(HTTPRequest *req, HTTPResponse *res) {
 void handleStyle(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/css");
     res->println(SD.open("/static/style.css", FILE_READ).readString());
-    
 };
 
 void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
@@ -491,10 +489,11 @@ void handleFan(HTTPRequest *req, HTTPResponse *res) {
         fanSpeedInput += String(buffer, s);
     }
     ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
-    //ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
-    //Serial.println(fanSpeedInput.substring(6).toInt());
+    // ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
+    // Serial.println(fanSpeedInput.substring(6).toInt());
 }
 
+// TODO: Update this to use one rout
 void handleToggle1(HTTPRequest *req, HTTPResponse *res) {
     Serial.println("1");
     digitalWrite(LAPTOP_HP_1, HIGH);
@@ -532,6 +531,30 @@ void handleToggle6(HTTPRequest *req, HTTPResponse *res) {
     digitalWrite(LAPTOP_HP_3, LOW);
 }
 
+void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
+
+};
+
+void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
+    byte buffer[256];
+
+    String data = "";
+    while (!(req->requestComplete())) {
+        size_t s = req->readBytes(buffer, 256);
+        data += String(buffer, s);
+    }
+
+    ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
+
+    res->setHeader("Content-Type", "text/html");
+    res->setHeader("Set-Cookie", "session=" + Session + "; Path=/; HttpOnly; SameSite=Strict; Secure");
+    res->println("<!DOCTYPE html>");
+    res->println("<html>");
+    res->println("<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Esp32 Website</title><link rel='stylesheet' type='text/css' href='style.css'></head>");
+    res->println("<body><p>Password set in session!</p></body>");
+    res->println("</html>");
+};
+
 void handle404(HTTPRequest *req, HTTPResponse *res) {
     // Discard request body, if we received any
     // We do this, as this is the default node and may also server POST/PUT requests
@@ -544,7 +567,7 @@ void handle404(HTTPRequest *req, HTTPResponse *res) {
     // Set content type of the response
     res->setHeader("Content-Type", "text/html");
 
-    // Write a tiny HTTP page
+    // Write a tiny HTML page
     res->println("<!DOCTYPE html>");
     res->println("<html>");
     res->println("<head><title>Not Found</title></head>");

@@ -69,6 +69,8 @@ void handleFan(HTTPRequest *req, HTTPResponse *res);
 void handleStyle(HTTPRequest *req, HTTPResponse *res);
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
 void handleComputers(HTTPRequest *req, HTTPResponse *res);
+void handleAdmin(HTTPRequest *req, HTTPResponse *res);
+void handleLogIn(HTTPRequest *req, HTTPResponse *res);
 
 // List of clients that signed up for sse
 std::vector<httpsserver::HTTPResponse *> sseClients;
@@ -343,6 +345,8 @@ void setup() {
     ResourceNode *nodeToggle4 = new ResourceNode("/toggle4", "POST", &handleToggle4);
     ResourceNode *nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
     ResourceNode *nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
+    ResourceNode *nodeAdmin = new ResourceNode("/admin", "GET", &handleAdmin);
+    ResourceNode *nodeLogIn = new ResourceNode("/admin", "POST", &handleLogIn);
 
     ResourceNode *nodeHandleFan = new ResourceNode("/fan", "POST", &handleFan);
     ResourceNode *nodeHandleStyle = new ResourceNode("/style.css", "GET", &handleStyle);
@@ -366,6 +370,10 @@ void setup() {
     secureServer->registerNode(nodeToggle6);
     secureServer->registerNode(nodeHandleFan);
     secureServer->registerNode(nodeHandleComputers);
+
+    secureServer->registerNode(nodeAdmin);
+    secureServer->registerNode(nodeLogIn);
+
 
     secureServer->registerNode(nodeHandleStyle);
 
@@ -532,7 +540,8 @@ void handleToggle6(HTTPRequest *req, HTTPResponse *res) {
 }
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
-
+    res->setHeader("Content-Type", "text/html");
+    res->println(SD.open("/templates/admin.html", FILE_READ).readString());
 };
 
 void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
@@ -543,11 +552,14 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
         size_t s = req->readBytes(buffer, 256);
         data += String(buffer, s);
     }
+    Serial.println(data);
 
-    ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
+    String Session = data;//.substring(11, data.length() - 1);
+    Serial.println(Session);
 
     res->setHeader("Content-Type", "text/html");
-    res->setHeader("Set-Cookie", "session=" + Session + "; Path=/; HttpOnly; SameSite=Strict; Secure");
+    String Cookie = "session=" + Session + "; Path=/; HttpOnly; SameSite=Strict; Secure";
+    res->setHeader("Set-Cookie", Cookie.c_str());
     res->println("<!DOCTYPE html>");
     res->println("<html>");
     res->println("<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Esp32 Website</title><link rel='stylesheet' type='text/css' href='style.css'></head>");

@@ -12,14 +12,14 @@
 
 <body>
     <ul>
-        <li><a class='selected' href="/">home</a></li>
+        <li><a href="/">home</a></li>
         <li><a href="/terminal">Terminal</a></li>
         <li><a href="/computers">Computers on/off</a></li>
-        <li><a href="/admin">Admin</a></li>
+        <li><a class='selected' href="/admin">Admin</a></li>
     </ul>
-    <form >
+    <form action="/admin" method="post">
         <label for="password">Password:</label>
-        <input id="password" type="password">
+        <input name="password" id="password" type="password">
         <input type="submit">Go!</input>
     </form>
 

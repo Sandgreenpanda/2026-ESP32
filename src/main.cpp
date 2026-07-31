@@ -7,6 +7,7 @@
 #include <SSLCert.hpp>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <functional>
 #include <libssh/libssh.h>
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
@@ -389,7 +390,7 @@ void setup() {
 
     secureServer->registerNode(nodeHandleTerminalUpdate);
 
-    secureServer.addMiddleware(&middlewareAuth);
+    secureServer->addMiddleware(&middlewareAuth);
 
     Serial.println("Starting server...");
     secureServer->start();
@@ -411,14 +412,22 @@ void loop() {
 }
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next) {
-    user_password_raw = (req->getHeader("Cookie"));
+    String user_password_raw = req->getHeader("Cookie").c_str();
+    String req_str = req->getRequestString().c_str();
+    Serial.println(req_str);
     Serial.println(user_password_raw);
 
-    user_password = user_password_raw.substring(user_password_raw.rfind("="), user_password_raw.length());
+    // Extract the password from the cookie
+    String user_password = user_password_raw.substring(user_password_raw.lastIndexOf("=") + 1, user_password_raw.length());
     Serial.println(user_password);
 
-    if (user_password == PASSWORD) {
-        next();
+    if (user_password == PASSWORD || req_str == "/style.css" || req_str == "/admin") {
+        if (user_password == PASSWORD && req_str == "/admin") {
+            res->setHeader("Content-Type", "text/html");
+            res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
+        } else {
+            next();
+        }
     } else {
         res->setStatusCode(404);
         res->setHeader("Content-Type", "text/html");
@@ -586,13 +595,10 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
     Serial.println(Session);
 
     res->setHeader("Content-Type", "text/html");
-    String Cookie = "session=" + Session + "; Path=/; HttpOnly; SameSite=Strict; Secure";
+    String Cookie = "session=" + Session + "; Path=/; SameSite=Strict; Secure";
     res->setHeader("Set-Cookie", Cookie.c_str());
-    res->println("<!DOCTYPE html>");
-    res->println("<html>");
-    res->println("<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Esp32 Website</title><link rel='stylesheet' type='text/css' href='style.css'></head>");
-    res->println("<body><p>Password set in session!</p></body>");
-    res->println("</html>");
+    res->setHeader("Content-Type", "text/html");
+    res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
 };
 
 void handle404(HTTPRequest *req, HTTPResponse *res) {

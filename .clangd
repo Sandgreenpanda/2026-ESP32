@@ -1,8 +1,13 @@
 CompileFlags:
-  Compiler: /home/alext/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-gcc
-  Remove:
-    - -mlongcalls
-    - -fstrict-volatile-bitfields
-    - -fno-tree-switch-conversion
-    - -mtext-section-literals
-    - -fipa-pta
+  CompilationDatabase: .
+  Add: [
+    "-x", "c++",
+    "--target=xtensa-esp32-elf",
+    "-D__XREFS__",
+    "-D__XTENSA__=1"
+  ]
+  Remove: [
+    "-mlongcalls",
+    "-fstrict-volatile-bitfields",
+    "-fno-tree-switch-conversion"
+  ]

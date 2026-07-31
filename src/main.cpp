@@ -72,6 +72,8 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res);
 void handleAdmin(HTTPRequest *req, HTTPResponse *res);
 void handleLogIn(HTTPRequest *req, HTTPResponse *res);
 
+void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
+
 // List of clients that signed up for sse
 std::vector<httpsserver::HTTPResponse *> sseClients;
 // std::vector<int> sseClients;
@@ -87,6 +89,12 @@ String shh_output_string = "";
 
 String shh_output_send = "";
 String shh_output_send_temp = "";
+
+String PASSWORD = "OYW7]X}7:)[Z2T;l58-P6(P6+{21t0tF"; // This is NOT my password.
+// This is a fallback for if the sd card does not load
+// There is no way to not commit the fallback to github, by nature of it being a fallback
+// I can't initialise it as an empty string, because in the case the SD card does not load,
+// an empty string is not secure.
 
 int ex_main() {
     ssh_session session = NULL;
@@ -323,6 +331,9 @@ void setup() {
         Serial.println("SD mount successful");
     }
 
+    // Real password is initialed from the SD
+    PASSWORD = SD.open("/crypto/password.txt", FILE_READ).readString();
+
     // Initialise the custom wifi event handler, which allows wait_for_wifi_exec to know when the ipv4 and v6 addresses have been set.
     esp_netif_init();
     esp_event_loop_create_default();
@@ -374,10 +385,11 @@ void setup() {
     secureServer->registerNode(nodeAdmin);
     secureServer->registerNode(nodeLogIn);
 
-
     secureServer->registerNode(nodeHandleStyle);
 
     secureServer->registerNode(nodeHandleTerminalUpdate);
+
+    secureServer.addMiddleware(&middlewareAuth);
 
     Serial.println("Starting server...");
     secureServer->start();
@@ -395,6 +407,22 @@ void loop() {
         Serial.println(rpm);
         tachPulseCount = 0;
         lastTachTime = millis();
+    }
+}
+
+void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next) {
+    user_password_raw = (req->getHeader("Cookie"));
+    Serial.println(user_password_raw);
+
+    user_password = user_password_raw.substring(user_password_raw.rfind("="), user_password_raw.length());
+    Serial.println(user_password);
+
+    if (user_password == PASSWORD) {
+        next();
+    } else {
+        res->setStatusCode(404);
+        res->setHeader("Content-Type", "text/html");
+        res->println(SD.open("/templates/no_auth.html", FILE_READ).readString());
     }
 }
 
@@ -554,7 +582,7 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
     }
     Serial.println(data);
 
-    String Session = data;//.substring(11, data.length() - 1);
+    String Session = data; //.substring(11, data.length() - 1);
     Serial.println(Session);
 
     res->setHeader("Content-Type", "text/html");

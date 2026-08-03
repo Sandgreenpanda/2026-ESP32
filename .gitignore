@@ -2,5 +2,9 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-.pio/**
-!/home/alext/Documents/PlatformIO/Projects/Esp32 DIGI/.pio/libdeps/esp32doit-devkit-v1/
+
+!.pio/
+!.pio/libdeps/
+!.pio/libdeps/esp32doit-devkit-v1/
+
+.pio/*

@@ -3,8 +3,8 @@
 .vscode/launch.json
 .vscode/ipch
 
-!.pio/
-!.pio/libdeps/
-!.pio/libdeps/esp32doit-devkit-v1/
 
 .pio/*
+!.pio/libdeps/
+.pio/libdeps/*
+!.pio/libdeps/esp32doit-devkit-v1/

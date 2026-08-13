@@ -14,8 +14,8 @@
 #include "util.hpp"
 
 #include "ConnectionContext.hpp"
-#include "HTTPHeader.hpp"
 #include "HTTPHeaders.hpp"
+#include "HTTPHeader.hpp"
 
 namespace httpsserver {
 
@@ -23,57 +23,47 @@ namespace httpsserver {
  * \brief Represents the response stream of an HTTP request
  */
 class HTTPResponse : public Print {
-  public:
-    HTTPResponse(ConnectionContext *con);
-    virtual ~HTTPResponse();
+public:
+  HTTPResponse(ConnectionContext * con);
+  virtual ~HTTPResponse();
 
-    void Save();
-    bool isSaved();
+  void setStatusCode(uint16_t statusCode);
+  void setStatusText(std::string const &statusText);
+  uint16_t getStatusCode();
+  std::string getStatusText();
+  void setHeader(std::string const &name, std::string const &value);
+  std::string getHeader(std::string const &name);
+  bool isHeaderWritten();
 
-    // ... rest of existing public declarations (setHeader, write, finalize, etc.) ...
+  void printStd(std::string const &str);
 
+  // From Print:
+  size_t write(const uint8_t *buffer, size_t size);
+  size_t write(uint8_t);
 
-    
+  void error();
 
-    void setStatusCode(uint16_t statusCode);
-    void setStatusText(std::string const &statusText);
-    uint16_t getStatusCode();
-    std::string getStatusText();
-    void setHeader(std::string const &name, std::string const &value);
-    std::string getHeader(std::string const &name);
-    bool isHeaderWritten();
+  bool isResponseBuffered();
+  void finalize();
 
-    void printStd(std::string const &str);
+  ConnectionContext * _con;
+  
+private:
+  void printHeader();
+  void printInternal(const std::string &str, bool skipBuffer = false);
+  size_t writeBytesInternal(const void * data, int length, bool skipBuffer = false);
+  void drainBuffer(bool onOverflow = false);
 
-    // From Print:
-    size_t write(const uint8_t *buffer, size_t size);
-    size_t write(uint8_t);
+  uint16_t _statusCode;
+  std::string _statusText;
+  HTTPHeaders _headers;
+  bool _headerWritten;
+  bool _isError;
 
-    void error();
-
-    bool isResponseBuffered();
-    void finalize();
-
-    ConnectionContext *_con;
-    // --- ADD THIS NEW FIELD ---
-    bool _isSaved;
-
-  private:
-    void printHeader();
-    void printInternal(const std::string &str, bool skipBuffer = false);
-    size_t writeBytesInternal(const void *data, int length, bool skipBuffer = false);
-    void drainBuffer(bool onOverflow = false);
-
-    uint16_t _statusCode;
-    std::string _statusText;
-    HTTPHeaders _headers;
-    bool _headerWritten;
-    bool _isError;
-
-    // Response cache
-    byte *_responseCache;
-    size_t _responseCacheSize;
-    size_t _responseCachePointer;
+  // Response cache
+  byte * _responseCache;
+  size_t _responseCacheSize;
+  size_t _responseCachePointer;
 };
 
 } /* namespace httpsserver */

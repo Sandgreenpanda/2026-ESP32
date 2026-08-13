@@ -32,6 +32,10 @@
 #define PWM_FAN_1 23
 #define TACH_FAN_1 22
 
+// Max ssh clients. So fat this is for ne computer, so I may do different objs later.
+// For now four is more than enough
+#define MAX_CLIENTS 4
+
 // Spi for the sd card file system
 SPIClass sdSPI(VSPI);
 
@@ -72,6 +76,7 @@ void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
 void handleComputers(HTTPRequest *req, HTTPResponse *res);
 void handleAdmin(HTTPRequest *req, HTTPResponse *res);
 void handleLogIn(HTTPRequest *req, HTTPResponse *res);
+void handleSSHpage(HTTPRequest *req, HTTPResponse *res);
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
 
@@ -97,7 +102,25 @@ String PASSWORD = "OYW7]X}7:)[Z2T;l58-P6(P6+{21t0tF"; // This is NOT my password
 // I can't initialise it as an empty string, because in the case the SD card does not load,
 // an empty string is not secure.
 
+// SSH handler class
+class SSHHandler : public WebsocketHandler {
+  public:
+    // This method is called by the webserver to instantiate a new handler for each
+    // client that connects to the websocket endpoint
+    static WebsocketHandler *create();
+
+    // This method is called when a message arrives
+    void onMessage(WebsocketInputStreambuf *input);
+
+    // Handler function on connection close
+    void onClose();
+};
+
+// Simple array to store the active clients:
+SSHHandler *activeClients[MAX_CLIENTS];
+
 int ex_main() {
+    Serial.println("Exec main begin");
     ssh_session session = NULL;
     ssh_channel channel = NULL;
     char buffer[256];
@@ -111,7 +134,10 @@ int ex_main() {
 
     int lastHandleKeepAlive = millis();
 
+    // Temporarily using test server
     session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
+    // ssession = connect_ssh("password", "test.rebex.net", "demo", 0);
+
     if (session == NULL) {
         ssh_finalize();
         return 1;
@@ -140,6 +166,7 @@ int ex_main() {
         goto failed;
         Serial.println("Shell Fail");
     }
+    Serial.println("loop begin");
     while (1) {
         // nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
         //   nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
@@ -148,6 +175,11 @@ int ex_main() {
         //    shh_output_string = String(buffer, nbytes);
         //   Serial.println(shh_output_string);
         // }
+
+
+
+        // This read is temp commented out
+        /*
 
         rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
@@ -163,10 +195,16 @@ int ex_main() {
         } while (rbytes > 0);
 
         Serial.println(shh_output_send_temp);
+        */
+
+
+
         // shh_output_send = shh_output_send_temp; // Sends the data for processing
 
         // This loop goes though ever client and attempts to update it with the new ssh data
         // If the client does not respond it is assumed disconnected and is removed
+        // Commented out because SSE is deprecated, use websockets
+        /*
         for (auto client = sseClients.begin(); client != sseClients.end();) { // Note there is no auto increment, this is done manually
             size_t bytesWritten = (*client)->print(shh_output_send_temp);
             // int bytesWritten = lwip_send((*client), shh_output_send_temp.c_str(), shh_output_send_temp.length(), MSG_DONTWAIT);
@@ -181,6 +219,7 @@ int ex_main() {
                 client++;
             }
         }
+        */
 
         if (ssh_command != "") {
             Serial.println("ssh cmd received");
@@ -237,15 +276,14 @@ int ex_main() {
             // ssh_channel_close(channel);
             // ssh_channel_free(channel);
             Serial.println("ssh command processing finished");
-
         } else {
-            vTaskDelay(1 / portTICK_PERIOD_MS);
             if (millis() - lastHandleKeepAlive >= 10000) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
                 ssh_send_ignore(session, "keepalive");
                 lastHandleKeepAlive = millis();
             }
         }
+        vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 
     ssh_disconnect(session);
@@ -297,9 +335,16 @@ void setup() {
     lastTachTime = millis();
 
     WiFi.disconnect(true);
+
+    // Max wifi strength
+    // WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    WiFi.setSleep(false);
+
     wifiMulti.addAP("WC Devices", "0jebr9yrxh");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
-    wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
+
+    // ESP32 is 2.4GHZ only
+    // wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
 
     devState = STATE_NEW;
 
@@ -365,6 +410,14 @@ void setup() {
     ResourceNode *nodeHandleComputers = new ResourceNode("/computers", "GET", &handleComputers);
 
     ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
+    ResourceNode *nodehandleSSHpage = new ResourceNode("/sshpage", "GET", &handleSSHpage);
+    WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
+    
+    
+
+    // Adding the node to the server works in the same way as for all other nodes
+    secureServer->registerNode(sshNode);
+    secureServer->registerNode(nodehandleSSHpage);
 
     // Add the root node to the server
     secureServer->registerNode(nodeRoot);
@@ -408,7 +461,15 @@ void loop() {
         Serial.println(rpm);
         tachPulseCount = 0;
         lastTachTime = millis();
-    }
+    };
+    // Print CPU temps
+    /*
+    if (ssh_command == "") {
+        Serial.println(shh_output_string);
+        shh_output_string = "";
+        ssh_command = "sensors | grep -E \"Core [0-9]\" | awk \'{print $3}\'";
+    };
+    */
 }
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next) {
@@ -421,7 +482,7 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     String user_password = user_password_raw.substring(user_password_raw.lastIndexOf("=") + 1, user_password_raw.length());
     Serial.println(user_password);
 
-    if (user_password == PASSWORD || req_str == "/style.css" || req_str == "/admin") {
+    if (user_password == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
         if (user_password == PASSWORD && req_str == "/admin") {
             res->setHeader("Content-Type", "text/html");
             res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
@@ -460,6 +521,41 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res) {
     res->println(SD.open("/templates/computers.html", FILE_READ).readString());
 };
 
+// Websockets
+WebsocketHandler *SSHHandler::create() {
+    Serial.println("Creating new chat client!");
+    SSHHandler *handler = new SSHHandler();
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (activeClients[i] == nullptr) {
+            activeClients[i] = handler;
+            break;
+        }
+    }
+    return handler;
+}
+
+// When the websocket is closing, we remove the client from the array
+void SSHHandler::onClose() {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (activeClients[i] == this) {
+            activeClients[i] = nullptr;
+        }
+    }
+}
+
+void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
+    // Get the input message
+    // Dont know how this works, but I got it from the default websocket chat example
+    // Might figure it out later
+    std::ostringstream ss;
+    std::string msg;
+    ss << inbuf;
+    msg = ss.str();
+
+    // Send the ssh output to the client
+    this->send(msg, SEND_TYPE_TEXT);
+}
+
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
     // sse headers
 
@@ -474,9 +570,9 @@ void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
     // int rawSocketFd = req->getClientStartData()->_socket;
     sseClients.push_back(res); // res is a pointer.
 
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
+    // res->Save(); // Pointers no longer disappear
+    //  Allows for SSE
+
     // A client is removed upon a bad res->print in the ssh loop
 
     // res->flush();
@@ -579,6 +675,11 @@ void handleToggle6(HTTPRequest *req, HTTPResponse *res) {
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
     res->println(SD.open("/templates/admin.html", FILE_READ).readString());
+};
+
+void handleSSHpage(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/html");
+    res->println(SD.open("/templates/websocket.html", FILE_READ).readString());
 };
 
 void handleLogIn(HTTPRequest *req, HTTPResponse *res) {

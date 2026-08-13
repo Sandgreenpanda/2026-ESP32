@@ -6,8 +6,7 @@
 namespace httpsserver {
 
 HTTPResponse::HTTPResponse(ConnectionContext * con):
-  _con(con) ,
-  _isSaved(false) {
+  _con(con) {
 
   // Default status code is 200 OK
   _statusCode = 200;
@@ -31,14 +30,6 @@ HTTPResponse::~HTTPResponse() {
     delete[] _responseCache;
   }
   _headers.clearAll();
-}
-
-void HTTPResponse::Save() {
-  _isSaved = true;
-}
-
-bool HTTPResponse::isSaved() {
-  return _isSaved;
 }
 
 void HTTPResponse::setStatusCode(uint16_t statusCode) {

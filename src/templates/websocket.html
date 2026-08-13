@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esp32 Website</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <script>
+        const socket = new WebSocket('wss://10.47.3.24/ssh');
+
+        socket.onopen = function (event) {
+            alert('You are Connected to WebSocket Server');
+        };
+
+        socket.onmessage = function (event) {
+            console.log(event.data);
+        };
+
+        socket.onclose = function (event) {
+
+            console.log('Disconnected from WebSocket server');
+        };
+
+        function sendMessage(message) {
+            socket.send(message);
+        }
+    </script>
+
+</body>
+
+</html>

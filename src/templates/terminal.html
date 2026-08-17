@@ -18,8 +18,24 @@
         <li><a href="/admin">Admin</a></li>
     </ul>
     <div id="terminal"></div>
+    <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
+    <form action="/toggle1" method="post" target="dummyframe">Toggle HP 1<input type="submit"></form>
+    <label for="hp1_reconnect" id="hp1_reconnect_label">true</label>
+    <p> </p>
+    <button type="button" id="hp1_reconnect">Reconnect</button>
+
 
     <script>
+        const hp1_reconnect = document.getElementById("hp1_reconnect");
+        const hp1_reconnect_label = document.getElementById("hp1_reconnect_label");
+        hp1_reconnect.addEventListener("click", function (event) {
+            fetch("/SSH1Status", {
+                method: "POST"
+            }).then(response => response.text()).then(data => {
+                hp1_reconnect_label.textContent = data;
+            })
+        });
+
         const socket = new WebSocket(`wss://${window.location.hostname}/ssh`);
 
         socket.onopen = function (event) {
@@ -46,19 +62,8 @@
         term.write('Welcome to Xterm.js Demo\n\r$ ');
         let command = '';
         term.onData(e => {
-
-                sendMessage(e);
-
+            sendMessage(e);
         });
-        function handleCommand(input) {
-            fetch('/terminal_post', {
-                method: 'post', headers: {
-                    'Accept': 'application/json', 'Content-Type': 'application/json'
-                }, body: JSON.stringify(input)
-            }).then(response => response.text()).then(data => {
-                term.write(data.trim().replaceAll('\n', '\r\n')); console.log(data); term.write('\r\n$ ');
-            })
-        }
     </script>
 </body>
 

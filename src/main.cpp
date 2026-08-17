@@ -46,6 +46,12 @@ boolean hp_3_conn = false;
 boolean acer_1_conn = false;
 boolean acer_2_conn = false;
 
+boolean hp_1_status_req = false;
+boolean hp_2_status_req = false;
+boolean hp_3_status_req = false;
+boolean acer_1_status_req = false;
+boolean acer_2_status_req = false;
+
 // Spi for the sd card file system
 SPIClass sdSPI(VSPI);
 
@@ -75,6 +81,7 @@ void handle404(HTTPRequest *req, HTTPResponse *res);
 void handleTerminal(HTTPRequest *req, HTTPResponse *res);
 void handleTerminalPost(HTTPRequest *req, HTTPResponse *res);
 void handleToggle1(HTTPRequest *req, HTTPResponse *res);
+void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res);
 void handleToggle2(HTTPRequest *req, HTTPResponse *res);
 void handleToggle3(HTTPRequest *req, HTTPResponse *res);
 void handleToggle4(HTTPRequest *req, HTTPResponse *res);
@@ -313,7 +320,6 @@ int ex_main() {
 
     Serial.println("loop begin");
     while (1) {
-        
 
         // Read the ssh data and send it to the websocket clients
         if (hp_1_session.read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
@@ -347,6 +353,16 @@ int ex_main() {
             hp_1_session.write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
 
+        } else if (hp_1_status_req) {
+            hp_1_conn = (hp_1_session.exec_cmd("echo alive") == "alive");
+
+            if (!hp_1_conn) {
+                Serial.println("HP1 Disconnect! Reconnecting...");
+                // TODO: Reconnect logic for turn on
+                hp_1_session.disconnect();
+                hp_1_session.connect();
+            }
+            hp_1_status_req = false;
         } else {
             if (millis() - lastHandleKeepAlive >= 10000) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
@@ -472,6 +488,7 @@ void setup() {
     ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
     ResourceNode *nodehandleSSHpage = new ResourceNode("/sshpage", "GET", &handleSSHpage);
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
+    ResourceNode *nodeSSHStatus1 = new ResourceNode("/SSH1Status", "POST", &handleSSHStatus1);
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -484,7 +501,7 @@ void setup() {
     // Add Terminal node
     secureServer->registerNode(nodeTerminal);
     secureServer->registerNode(nodeTerminalPost);
-
+    secureServer->registerNode(nodeSSHStatus1);
     secureServer->registerNode(nodeToggle1);
     secureServer->registerNode(nodeToggle2);
     secureServer->registerNode(nodeToggle3);
@@ -737,6 +754,15 @@ void handleToggle6(HTTPRequest *req, HTTPResponse *res) {
     digitalWrite(LAPTOP_HP_3, HIGH);
     delay(1000);
     digitalWrite(LAPTOP_HP_3, LOW);
+}
+
+void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
+    hp_1_status_req = true;
+    res->setHeader("Content-Type", "application/json");
+    while (hp_1_status_req) {
+        delay(1);
+    }
+    res->println(hp_1_conn);
 }
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {

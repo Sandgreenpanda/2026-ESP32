@@ -1,4 +1,6 @@
+#include "Arduino.h"
 #include "HardwareSerial.h"
+#include "WString.h"
 #include "esp32-hal-ledc.h"
 #include "esp32-hal.h"
 #include <HTTPRequest.hpp>
@@ -7,12 +9,12 @@
 #include <SSLCert.hpp>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+
 #include <functional>
 #include <libssh/libssh.h>
+#include <lwip/sockets.h>
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
-
-#include <lwip/sockets.h>
 
 #include <FS.h>
 #include <SD.h>
@@ -35,6 +37,14 @@
 // Max ssh clients. So fat this is for ne computer, so I may do different objs later.
 // For now four is more than enough
 #define MAX_CLIENTS 4
+
+#define SSH_SINGLE_EXEC_TIMEOUT 10000 // 10s
+
+boolean hp_1_conn = false;
+boolean hp_2_conn = false;
+boolean hp_3_conn = false;
+boolean acer_1_conn = false;
+boolean acer_2_conn = false;
 
 // Spi for the sd card file system
 SPIClass sdSPI(VSPI);
@@ -120,13 +130,173 @@ class SSHHandler : public WebsocketHandler {
 // Simple array to store the active clients:
 SSHHandler *activeClients[MAX_CLIENTS];
 
+class ssh_conn {
+    // All my code :)
+  private:
+    char *host;
+    char *user;
+    char *password;
+    ssh_channel channel;
+    ssh_session session;
+
+  public:
+    ssh_conn(char *host, char *user, char *password) {
+        this->host = host;
+        this->user = user;
+        this->password = password;
+    }
+
+    void brutal_exception() {
+        ssh_channel_close(channel);
+        ssh_channel_free(channel);
+        ssh_disconnect(session);
+        ssh_free(session);
+        ssh_finalize();
+    }
+
+    ssh_channel connect() {
+        // Except for this bit ;)
+
+        int rc;
+        session = connect_ssh(password, host, user, 0);
+        // session = connect_ssh("password", "test.rebex.net", "demo", 0);
+
+        if (session == NULL) {
+            ssh_finalize();
+            return NULL;
+        }
+
+        channel = ssh_channel_new(session);
+
+        rc = ssh_channel_open_session(channel);
+        if (rc != SSH_OK) {
+            Serial.println("Open Fail");
+            this->brutal_exception();
+            return NULL;
+        }
+
+        rc = ssh_channel_request_pty(channel);
+        if (rc != SSH_OK) {
+            Serial.println("Request Fail");
+            this->brutal_exception();
+            return NULL;
+        }
+        rc = ssh_channel_change_pty_size(channel, 100, 30);
+        if (rc != SSH_OK) {
+            Serial.println("Resize Fail");
+            this->brutal_exception();
+            return NULL;
+        }
+        rc = ssh_channel_request_shell(channel);
+        if (rc != SSH_OK) {
+            Serial.println("Shell Fail");
+            this->brutal_exception();
+            return NULL;
+        }
+        return channel;
+    }
+
+    int read() {
+        char buffer[256];
+        int rbytes;
+
+        shh_output_send_temp = "";
+        rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+
+        if (rbytes > 0) {
+
+            std::string msg(buffer, rbytes);
+            for (int i = 0; i < MAX_CLIENTS; i++) {
+                if (activeClients[i] != nullptr) {
+                    // Serial.print("THIS +");
+                    Serial.println(msg.c_str());
+                    activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
+                }
+            }
+        };
+        return rbytes;
+    }
+
+    void write(String command) {
+        Serial.println("ssh cmd received:");
+        Serial.println(command);
+        ssh_channel_write(channel, command.c_str(), command.length());
+        Serial.println("ssh command processing finished");
+    }
+
+    void keep_alive() {
+        ssh_send_ignore(session, "keepalive");
+    }
+
+    String exec_cmd(String command) {
+        ssh_channel channel_oneoff = NULL;
+        int rc;
+        int nbytes;
+        char buffer[256];
+        String ssh_output = "";
+
+        channel_oneoff = ssh_channel_new(session);
+        if (channel_oneoff == NULL)
+            return "-1"; // SSH ERROR
+
+        rc = ssh_channel_open_session(channel_oneoff);
+        if (rc != SSH_OK) {
+            ssh_channel_free(channel_oneoff);
+            return String(rc);
+        }
+
+        rc = ssh_channel_request_exec(channel_oneoff, command.c_str());
+        if (rc != SSH_OK) {
+            ssh_channel_close(channel_oneoff);
+            ssh_channel_free(channel_oneoff);
+            return String(rc);
+        }
+
+        unsigned long startTime = millis();
+
+        while (ssh_channel_is_open(channel_oneoff) && !ssh_channel_is_eof(channel_oneoff)) {
+            nbytes = ssh_channel_read_nonblocking(channel_oneoff, buffer, sizeof(buffer), 0);
+
+            if (nbytes > 0) {
+                ssh_output += String(buffer, nbytes);
+                startTime = millis();
+            } else if (nbytes == SSH_ERROR) {
+                return "-1"; // SSH ERROR
+            }
+
+            if (millis() - startTime > SSH_SINGLE_EXEC_TIMEOUT) {
+                Serial.println("Command timed out waiting for EOF!");
+                break;
+            }
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+        }
+
+        nbytes = ssh_channel_read_nonblocking(channel_oneoff, buffer, sizeof(buffer), 0);
+
+        if (nbytes > 0) {
+            ssh_output += String(buffer, nbytes);
+            startTime = millis();
+        } else if (nbytes == SSH_ERROR) {
+            return "-1"; // SSH ERROR
+        }
+
+        ssh_channel_close(channel_oneoff);
+        ssh_channel_free(channel_oneoff);
+
+        return ssh_output;
+    }
+
+    void disconnect() {
+        ssh_disconnect(session);
+        ssh_free(session);
+        ssh_finalize();
+    }
+};
+
 int ex_main() {
     Serial.println("Exec main begin");
     ssh_session session = NULL;
     ssh_channel channel = NULL;
-    char buffer[256];
-    int rbytes;
-    int rc;
 
     int nbytes;
     int nwritten;
@@ -137,71 +307,16 @@ int ex_main() {
 
     // Temporarily using test server
     // session = connect_ssh("Home1918", "10.47.1.39", "alext", 0);
-     session = connect_ssh("Home1918", "192.168.1.25", "alext", 0);
-    //session = connect_ssh("password", "test.rebex.net", "demo", 0);
 
-    if (session == NULL) {
-        ssh_finalize();
-        return 1;
-    }
+    ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
+    hp_1_session.connect();
 
-    channel = ssh_channel_new(session);
-
-    rc = ssh_channel_open_session(channel);
-    if (rc != SSH_OK) {
-        Serial.println("Open Fail");
-        goto failed;
-    }
-
-    rc = ssh_channel_request_pty(channel);
-    if (rc != SSH_OK) {
-        Serial.println("Request Fail");
-        goto failed;
-    }
-    rc = ssh_channel_change_pty_size(channel, 100, 30);
-    if (rc != SSH_OK) {
-        Serial.println("Resize Fail");
-        goto failed;
-    }
-    rc = ssh_channel_request_shell(channel);
-    if (rc != SSH_OK) {
-        goto failed;
-        Serial.println("Shell Fail");
-    }
     Serial.println("loop begin");
     while (1) {
-        // nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-        //   nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+        
 
-        // if (nbytes > 0) {
-        //    shh_output_string = String(buffer, nbytes);
-        //   Serial.println(shh_output_string);
-        // }
-
-        // This read is temp commented out
-        shh_output_send_temp = "";
-        rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-
-        if (rbytes > 0) {
-            // Serial.println("response loop");
-            // shh_output_send_temp += String(buffer, rbytes);
-            // rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-            // Serial.println(rbytes);
-
-            // if (shh_output_send_temp != "") {
-
-            //   Serial.println(shh_output_send_temp);
-
-            // shh_output_send_temp_old = shh_output_send_temp;
-            std::string msg(buffer, rbytes);
-            for (int i = 0; i < MAX_CLIENTS; i++) {
-                if (activeClients[i] != nullptr) {
-                    // Serial.print("THIS +");
-                       Serial.println(msg.c_str());
-                    activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
-                }
-            }
-        } else {
+        // Read the ssh data and send it to the websocket clients
+        if (hp_1_session.read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
 
@@ -228,84 +343,21 @@ int ex_main() {
         */
 
         if (ssh_command != "") {
-            Serial.println("ssh cmd received");
-            Serial.println(ssh_command);
-            // channel = ssh_channel_new(session);
-
-            // Better ssh start:
-
-            // Put the command bytes the format ssh write wants
-
-            // ssh_command += "\n";
-
-            ssh_channel_write(channel, ssh_command.c_str(), ssh_command.length());
-
-            /*
-
-            rc = ssh_channel_open_session(channel);
-            //if (rc < 0) {
-            //    goto failed;
-            //}
-            rc = ssh_channel_request_exec(channel, ssh_command.c_str());
-            // if (rc < 0) {
-            //     goto failed;
-            //  }
-            Serial.println(rc);
-            // Reads the ssh output
-            shh_output_string = "";
-            rbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-            Serial.println("response 1");
-
-
-            */
-
-            // Prints the ssh output
-            //  Serial.println(shh_output_string);
-            //   shh_output_string = "";
-            /*
-            rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-
-            if (rbytes > 0) {
-                shh_output_string = String(buffer, rbytes);
-            }
-            do {
-                Serial.println("response loop");
-                shh_output_string += String(buffer, rbytes);
-                rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-                Serial.println(rbytes);
-            } while (rbytes > 0);
-
-            Serial.println(shh_output_string);
-            */
-
+            // Write the websocket data to ssh
+            hp_1_session.write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
 
-            //  ssh_channel_send_eof(channel);
-            // ssh_channel_close(channel);
-            // ssh_channel_free(channel);
-            Serial.println("ssh command processing finished");
         } else {
             if (millis() - lastHandleKeepAlive >= 10000) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
-                ssh_send_ignore(session, "keepalive");
+                hp_1_session.keep_alive();
                 lastHandleKeepAlive = millis();
             }
         }
-        
     }
+    hp_1_session.disconnect();
 
-    ssh_disconnect(session);
-    ssh_free(session);
-    ssh_finalize();
     return 0;
-failed:
-    Serial.println("FAIL");
-    ssh_channel_close(channel);
-    ssh_channel_free(channel);
-    ssh_disconnect(session);
-    ssh_free(session);
-    ssh_finalize();
-    return 1;
 }
 
 void controlTask(void *pvParameter) {

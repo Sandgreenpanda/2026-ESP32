@@ -10,7 +10,7 @@
 
 <body>
     <script>
-        const socket = new WebSocket('wss://10.47.3.24/ssh');
+        const socket = new WebSocket(`wss://${window.location.hostname}/ssh`);
 
         socket.onopen = function (event) {
             alert('You are Connected to WebSocket Server');

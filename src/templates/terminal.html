@@ -18,8 +18,28 @@
         <li><a href="/admin">Admin</a></li>
     </ul>
     <div id="terminal"></div>
-    
+
     <script>
+        const socket = new WebSocket(`wss://${window.location.hostname}/ssh`);
+
+        socket.onopen = function (event) {
+            alert('You are Connected to WebSocket Server');
+        };
+
+        socket.onmessage = function (event) {
+            term.write(event.data.trim().replaceAll('\n', '\r\n')); console.log(event.data); term.write('\r\n$ ');
+        };
+
+        socket.onclose = function (event) {
+
+            console.log('Disconnected from WebSocket server');
+        };
+
+        function sendMessage(message) {
+            socket.send(message);
+        }
+
+
         const term = new Terminal({ rows: 30, cols: 100 });
         const terminalContainer = document.getElementById('terminal');
         term.open(terminalContainer);
@@ -28,7 +48,10 @@
         term.onData(e => {
             if (e === '\r') {
                 term.write('\n\r');
-                handleCommand(command.trim()); command = '';
+                sendMessage(command.trim());
+
+                //handleCommand(command.trim());
+                command = '';
             } else if (e === '\x7F') {
                 if (command.length > 0) {
                     term.write('\b \b');

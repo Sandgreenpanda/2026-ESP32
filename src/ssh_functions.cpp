@@ -19,7 +19,7 @@ extern volatile bool wifiPhyConnected;
 
 extern WiFiMulti wifiMulti;
 
-#define WIFI_TIMEOUT_S 20
+#define WIFI_TIMEOUT_S 40
 #define NET_WAIT_MS 100
 
 extern volatile devState_t devState;
@@ -49,7 +49,9 @@ void wait_for_wifi_exec(std::function<int ()> exec_func) {
             xStartTime = xTaskGetTickCount();
             break;
         case STATE_WAIT_IPADDR:
-            if (gotIpAddr && gotIp6Addr)
+           // if (gotIpAddr && gotIp6Addr)
+           devState = STATE_GOT_IPADDR;
+            if (gotIp6Addr)
                 devState = STATE_GOT_IPADDR;
             else {
                 // Check the timeout.

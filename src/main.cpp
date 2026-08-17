@@ -92,6 +92,7 @@ volatile bool wifiPhyConnected;
 
 String ssh_command = "";
 String shh_output_string = "";
+String shh_output_send_temp_old = "";
 
 String shh_output_send = "";
 String shh_output_send_temp = "";
@@ -135,8 +136,9 @@ int ex_main() {
     int lastHandleKeepAlive = millis();
 
     // Temporarily using test server
-    session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
-    // ssession = connect_ssh("password", "test.rebex.net", "demo", 0);
+    // session = connect_ssh("Home1918", "10.47.1.39", "alext", 0);
+    // session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
+    session = connect_ssh("password", "test.rebex.net", "demo", 0);
 
     if (session == NULL) {
         ssh_finalize();
@@ -176,28 +178,33 @@ int ex_main() {
         //   Serial.println(shh_output_string);
         // }
 
-
-
         // This read is temp commented out
-        /*
-
+        shh_output_send_temp = "";
         rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
-        if (rbytes > 0) {
-            shh_output_send_temp = String(buffer, rbytes);
-        }
+      
 
-        do {
-            Serial.println("response loop");
+        while (rbytes > 0) {
+            // Serial.println("response loop");
             shh_output_send_temp += String(buffer, rbytes);
             rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
-            Serial.println(rbytes);
-        } while (rbytes > 0);
+            // Serial.println(rbytes);
+        }
 
-        Serial.println(shh_output_send_temp);
-        */
+        if (shh_output_send_temp != "") {
 
+            Serial.println(shh_output_send_temp);
 
+            //shh_output_send_temp_old = shh_output_send_temp;
+
+            for (int i = 0; i < MAX_CLIENTS; i++) {
+                if (activeClients[i] != nullptr) {
+                    Serial.print("THIS +");
+                    Serial.println(shh_output_send_temp.c_str());
+                    activeClients[i]->send(shh_output_send_temp.c_str(), WebsocketHandler::SEND_TYPE_TEXT);
+                }
+            }
+        }
 
         // shh_output_send = shh_output_send_temp; // Sends the data for processing
 
@@ -256,6 +263,7 @@ int ex_main() {
             // Prints the ssh output
             //  Serial.println(shh_output_string);
             //   shh_output_string = "";
+            /*
             rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
             if (rbytes > 0) {
@@ -269,6 +277,7 @@ int ex_main() {
             } while (rbytes > 0);
 
             Serial.println(shh_output_string);
+            */
 
             ssh_command = ""; // Reset command to prevent infinite loop
 
@@ -412,8 +421,6 @@ void setup() {
     ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
     ResourceNode *nodehandleSSHpage = new ResourceNode("/sshpage", "GET", &handleSSHpage);
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
-    
-    
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -551,9 +558,17 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     std::string msg;
     ss << inbuf;
     msg = ss.str();
+    String ssh_msg = msg.c_str();
 
     // Send the ssh output to the client
-    this->send(msg, SEND_TYPE_TEXT);
+
+    Serial.println(ssh_msg);
+    ssh_command = ssh_msg;
+
+    /*
+    this->send(shh_output_string.c_str(), SEND_TYPE_TEXT);
+    shh_output_string = "";
+    */
 }
 
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {

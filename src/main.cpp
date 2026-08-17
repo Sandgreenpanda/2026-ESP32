@@ -36,15 +36,9 @@
 
 // Max ssh clients. So fat this is for ne computer, so I may do different objs later.
 // For now four is more than enough
-#define MAX_CLIENTS 4
+#define MAX_CLIENTS 6
 
 #define SSH_SINGLE_EXEC_TIMEOUT 10000 // 10s
-
-boolean hp_1_conn = false;
-boolean hp_2_conn = false;
-boolean hp_3_conn = false;
-boolean acer_1_conn = false;
-boolean acer_2_conn = false;
 
 boolean hp_1_status_req = false;
 boolean hp_2_status_req = false;
@@ -147,6 +141,8 @@ class ssh_conn {
     ssh_session session;
 
   public:
+    boolean conn = false;
+
     ssh_conn(char *host, char *user, char *password) {
         this->host = host;
         this->user = user;
@@ -300,6 +296,8 @@ class ssh_conn {
     }
 };
 
+ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
+
 int ex_main() {
     Serial.println("Exec main begin");
     ssh_session session = NULL;
@@ -315,62 +313,48 @@ int ex_main() {
     // Temporarily using test server
     // session = connect_ssh("Home1918", "10.47.1.39", "alext", 0);
 
-    ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
-    hp_1_session.connect();
+    if (hp_1_session.connect() != NULL) {
+        hp_1_session.conn = true;
+    }
 
     Serial.println("loop begin");
     while (1) {
 
         // Read the ssh data and send it to the websocket clients
-        if (hp_1_session.read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
+        if (!hp_1_session.conn || hp_1_session.read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
+            // If the connection is down, dont read by short circuit evaluation
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
 
-        // shh_output_send = shh_output_send_temp; // Sends the data for processing
-
-        // This loop goes though ever client and attempts to update it with the new ssh data
-        // If the client does not respond it is assumed disconnected and is removed
-        // Commented out because SSE is deprecated, use websockets
-        /*
-        for (auto client = sseClients.begin(); client != sseClients.end();) { // Note there is no auto increment, this is done manually
-            size_t bytesWritten = (*client)->print(shh_output_send_temp);
-            // int bytesWritten = lwip_send((*client), shh_output_send_temp.c_str(), shh_output_send_temp.length(), MSG_DONTWAIT);
-
-            if (bytesWritten <= 0 && shh_output_send_temp != "") { // Less than 0 is error code, and 0 is no bytes written.
-                                                                   // We also make sure we actually were writing bytes to prevent false positives
-
-                // Removes the item, as the client has disconnected. Sets the iterator to the next valid client
-                delete *client;
-                client = sseClients.erase(client);
-            } else {
-                client++;
-            }
-        }
-        */
-
-        if (ssh_command != "") {
+        if (ssh_command != "" && hp_1_session.conn) {
             // Write the websocket data to ssh
             hp_1_session.write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
 
         } else if (hp_1_status_req) {
-            hp_1_conn = (hp_1_session.exec_cmd("echo alive") == "alive");
+            hp_1_session.conn = (hp_1_session.exec_cmd("echo alive") == "alive");
 
-            if (!hp_1_conn) {
+            if (!hp_1_session.conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
                 // TODO: Reconnect logic for turn on
                 hp_1_session.disconnect();
                 hp_1_session.connect();
+                if (hp_1_session.connect() != NULL) {
+                    hp_1_session.conn = true;
+                } else {
+                    hp_1_session.conn = false;
+                }
             }
             hp_1_status_req = false;
         } else {
-            if (millis() - lastHandleKeepAlive >= 10000) { // Every 10 seconds
+            if (millis() - lastHandleKeepAlive >= 10000 && hp_1_session.conn) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
                 hp_1_session.keep_alive();
                 lastHandleKeepAlive = millis();
             }
         }
     }
+    hp_1_session.conn = true;
     hp_1_session.disconnect();
 
     return 0;
@@ -382,50 +366,8 @@ void controlTask(void *pvParameter) {
     wait_for_wifi_exec(ex_main);
 }
 
-void setup() {
-
-    digitalWrite(LAPTOP_HP_1, LOW);
-    digitalWrite(LAPTOP_HP_2, LOW);
-    digitalWrite(LAPTOP_HP_3, LOW);
-    digitalWrite(LAPTOP_LENOVO_1, LOW);
-    digitalWrite(LAPTOP_ACER_1, LOW);
-    digitalWrite(LAPTOP_ACER_2, LOW);
-    pinMode(LAPTOP_HP_1, OUTPUT);
-    pinMode(LAPTOP_HP_2, OUTPUT);
-    pinMode(LAPTOP_HP_3, OUTPUT);
-    pinMode(LAPTOP_LENOVO_1, OUTPUT);
-    pinMode(LAPTOP_ACER_1, OUTPUT);
-    pinMode(LAPTOP_ACER_2, OUTPUT);
-
-    // Setup fans
-    // First pin is declared to use chanel 0
-    ledcSetup(0, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(PWM_FAN_1, 0);
-    ledcWrite(0, 0); // Set initial fan speed to zero
-
-    // Configure tachometer pin with interrupt
-    pinMode(TACH_FAN_1, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(TACH_FAN_1), tachISR, FALLING);
-
-    // Initialize timing for fan tach
-    lastTachTime = millis();
-
-    WiFi.disconnect(true);
-
-    // Max wifi strength
-    // WiFi.setTxPower(WIFI_POWER_19_5dBm);
-    WiFi.setSleep(false);
-
-    wifiMulti.addAP("WC Devices", "0jebr9yrxh");
-    wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
-
-    // ESP32 is 2.4GHZ only
-    // wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
-
-    devState = STATE_NEW;
-
-    Serial.begin(115200);
-
+void serverTask(void *params) {
+    // Server task in different thread on same core for async behavior.
     Serial.println("Creating a new self-signed certificate.");
     Serial.println("This may take up to a minute, so be patient ;-)");
 
@@ -446,27 +388,7 @@ void setup() {
     }
     Serial.println("Creating the certificate was successful");
 
-    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-    if (!SD.begin(SD_CS, sdSPI)) {
-        Serial.println("SD mount failed");
-    } else {
-        Serial.println("SD mount successful");
-    }
-
-    // Real password is initialed from the SD
-    PASSWORD = SD.open("/crypto/password.txt", FILE_READ).readString();
-
-    // Initialise the custom wifi event handler, which allows wait_for_wifi_exec to know when the ipv4 and v6 addresses have been set.
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, event_cb, NULL, NULL);
-    esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, event_cb, NULL, NULL);
-
-    // Stack size needs to be larger, so continue in a new task.
-
-    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
-
-    secureServer = new HTTPSServer(cert);
+    secureServer = new HTTPSServer(cert, 443, MAX_CLIENTS);
 
     ResourceNode *nodeRoot = new ResourceNode("/", "GET", &handleRoot);
     ResourceNode *node404 = new ResourceNode("", "GET", &handle404);
@@ -524,18 +446,103 @@ void setup() {
     secureServer->start();
     if (secureServer->isRunning()) {
         Serial.println("Server ready.");
+
+        // "loop()" function of the separate task
+        while (true) {
+            // This call will let the server do its work
+            secureServer->loop();
+
+            // Other code would go here...
+            delay(1);
+        }
     }
 }
 
+void setup() {
+
+    digitalWrite(LAPTOP_HP_1, LOW);
+    digitalWrite(LAPTOP_HP_2, LOW);
+    digitalWrite(LAPTOP_HP_3, LOW);
+    digitalWrite(LAPTOP_LENOVO_1, LOW);
+    digitalWrite(LAPTOP_ACER_1, LOW);
+    digitalWrite(LAPTOP_ACER_2, LOW);
+    pinMode(LAPTOP_HP_1, OUTPUT);
+    pinMode(LAPTOP_HP_2, OUTPUT);
+    pinMode(LAPTOP_HP_3, OUTPUT);
+    pinMode(LAPTOP_LENOVO_1, OUTPUT);
+    pinMode(LAPTOP_ACER_1, OUTPUT);
+    pinMode(LAPTOP_ACER_2, OUTPUT);
+
+    // Setup fans
+    // First pin is declared to use chanel 0
+    ledcSetup(0, PWM_FREQ, PWM_RESOLUTION);
+    ledcAttachPin(PWM_FAN_1, 0);
+    ledcWrite(0, 0); // Set initial fan speed to zero
+
+    // Configure tachometer pin with interrupt
+    pinMode(TACH_FAN_1, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(TACH_FAN_1), tachISR, FALLING);
+
+    // Initialize timing for fan tach
+    lastTachTime = millis();
+
+    WiFi.disconnect(true);
+
+    // Max wifi strength
+    // WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    WiFi.setSleep(false);
+
+    wifiMulti.addAP("WC Devices", "0jebr9yrxh");
+    wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
+
+    // ESP32 is 2.4GHZ only
+    // wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
+
+    devState = STATE_NEW;
+
+    Serial.begin(115200);
+
+    sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+    if (!SD.begin(SD_CS, sdSPI)) {
+        Serial.println("SD mount failed");
+    } else {
+        Serial.println("SD mount successful");
+    }
+
+    // Real password is initialed from the SD
+    PASSWORD = SD.open("/crypto/password.txt", FILE_READ).readString();
+
+    // Initialise the custom wifi event handler, which allows wait_for_wifi_exec to know when the ipv4 and v6 addresses have been set.
+    esp_netif_init();
+    esp_event_loop_create_default();
+    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, event_cb, NULL, NULL);
+    esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, event_cb, NULL, NULL);
+
+    // Stack size needs to be larger, so continue in a new task.
+
+    //    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
+
+    // TEMP
+    wifiMulti.run();
+
+    // Make the server async and give it more ram
+    xTaskCreatePinnedToCore(serverTask, "https443", 10240, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+}
+
 void loop() {
-    secureServer->loop();
+    //   secureServer->loop();
     delay(1);
     if (millis() - lastTachTime >= TACH_SAMPLE_TIME) {
         // Calculate RPM (2 pulses per revolution for most fans)
         unsigned long rpm = (tachPulseCount * 60000) / (TACH_SAMPLE_TIME * 2);
         Serial.println(rpm);
         tachPulseCount = 0;
+        //  Serial.printf("[CLIENT 1 ACTIVE] Free Heap: %d | Max Contiguous Block: %d\n",
+        //              ESP.getFreeHeap(), ESP.getMaxAllocHeap());
         lastTachTime = millis();
+
+        // Serial.println("CORE:");
+        // Serial.println(xPortGetCoreID());
     };
     // Print CPU temps
     /*
@@ -580,12 +587,14 @@ void handleRoot(HTTPRequest *req, HTTPResponse *res) {
 
 void handleStyle(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/css");
+    res->setHeader("Connection", "close");
     res->println(SD.open("/static/style.css", FILE_READ).readString());
 };
 
 void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     // Status code is 200 OK by default.
     // We want to deliver a simple HTML page, so we send a corresponding content type:
+    res->setHeader("Connection", "close");
     res->setHeader("Content-Type", "text/html");
 
     res->println(SD.open("/templates/terminal.html", FILE_READ).readString());
@@ -762,7 +771,7 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
     while (hp_1_status_req) {
         delay(1);
     }
-    res->println(hp_1_conn);
+    res->println(hp_1_session.conn);
 }
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {

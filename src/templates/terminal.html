@@ -27,7 +27,7 @@
         };
 
         socket.onmessage = function (event) {
-            term.write(event.data.trim().replaceAll('\n', '\r\n')); console.log(event.data); term.write('\r\n$ ');
+            term.write(event.data.replaceAll('\n', '\r\n'));
         };
 
         socket.onclose = function (event) {
@@ -46,21 +46,9 @@
         term.write('Welcome to Xterm.js Demo\n\r$ ');
         let command = '';
         term.onData(e => {
-            if (e === '\r') {
-                term.write('\n\r');
-                sendMessage(command.trim());
 
-                //handleCommand(command.trim());
-                command = '';
-            } else if (e === '\x7F') {
-                if (command.length > 0) {
-                    term.write('\b \b');
-                    command = command.slice(0, -1);
-                }
-            } else {
-                term.write(e); command += e;
+                sendMessage(e);
 
-            }
         });
         function handleCommand(input) {
             fetch('/terminal_post', {

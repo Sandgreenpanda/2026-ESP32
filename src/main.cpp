@@ -137,8 +137,8 @@ int ex_main() {
 
     // Temporarily using test server
     // session = connect_ssh("Home1918", "10.47.1.39", "alext", 0);
-    // session = connect_ssh("Home1918", "192.168.1.222", "alext", 0);
-    session = connect_ssh("password", "test.rebex.net", "demo", 0);
+     session = connect_ssh("Home1918", "192.168.1.25", "alext", 0);
+    //session = connect_ssh("password", "test.rebex.net", "demo", 0);
 
     if (session == NULL) {
         ssh_finalize();
@@ -182,28 +182,27 @@ int ex_main() {
         shh_output_send_temp = "";
         rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
-      
-
-        while (rbytes > 0) {
+        if (rbytes > 0) {
             // Serial.println("response loop");
-            shh_output_send_temp += String(buffer, rbytes);
-            rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+            // shh_output_send_temp += String(buffer, rbytes);
+            // rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
             // Serial.println(rbytes);
-        }
 
-        if (shh_output_send_temp != "") {
+            // if (shh_output_send_temp != "") {
 
-            Serial.println(shh_output_send_temp);
+            //   Serial.println(shh_output_send_temp);
 
-            //shh_output_send_temp_old = shh_output_send_temp;
-
+            // shh_output_send_temp_old = shh_output_send_temp;
+            std::string msg(buffer, rbytes);
             for (int i = 0; i < MAX_CLIENTS; i++) {
                 if (activeClients[i] != nullptr) {
-                    Serial.print("THIS +");
-                    Serial.println(shh_output_send_temp.c_str());
-                    activeClients[i]->send(shh_output_send_temp.c_str(), WebsocketHandler::SEND_TYPE_TEXT);
+                    // Serial.print("THIS +");
+                       Serial.println(msg.c_str());
+                    activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
                 }
             }
+        } else {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
 
         // shh_output_send = shh_output_send_temp; // Sends the data for processing
@@ -237,7 +236,7 @@ int ex_main() {
 
             // Put the command bytes the format ssh write wants
 
-            ssh_command += "\n";
+            // ssh_command += "\n";
 
             ssh_channel_write(channel, ssh_command.c_str(), ssh_command.length());
 
@@ -292,7 +291,7 @@ int ex_main() {
                 lastHandleKeepAlive = millis();
             }
         }
-        vTaskDelay(1 / portTICK_PERIOD_MS);
+        
     }
 
     ssh_disconnect(session);
@@ -397,7 +396,7 @@ void setup() {
 
     // Stack size needs to be larger, so continue in a new task.
 
-    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, portNUM_PROCESSORS - 1);
+    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
 
     secureServer = new HTTPSServer(cert);
 
@@ -532,6 +531,7 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res) {
 WebsocketHandler *SSHHandler::create() {
     Serial.println("Creating new chat client!");
     SSHHandler *handler = new SSHHandler();
+
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (activeClients[i] == nullptr) {
             activeClients[i] = handler;

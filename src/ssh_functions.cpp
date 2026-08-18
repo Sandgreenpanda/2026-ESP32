@@ -76,7 +76,7 @@ void wait_for_wifi_exec(std::function<int ()> exec_func) {
         case STATE_OTA_COMPLETE:
             aborting = false;
             // Initialize the Arduino library.
-            libssh_begin();
+            
             {
                 long start_millis = millis(); // Current time
                 printf("\n[SNIP STDOUT START]\n");

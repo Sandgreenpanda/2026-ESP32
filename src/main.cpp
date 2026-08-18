@@ -9,7 +9,8 @@
 #include <SSLCert.hpp>
 #include <WiFi.h>
 #include <WiFiMulti.h>
-
+#include "esp_bt.h"
+#include "libssh_esp32.h"
 #include <functional>
 #include <libssh/libssh.h>
 #include <lwip/sockets.h>
@@ -95,7 +96,7 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
 std::vector<httpsserver::HTTPResponse *> sseClients;
 // std::vector<int> sseClients;
 
-const unsigned int configSTACK = 51200;
+const unsigned int configSTACK = 21200;
 
 volatile devState_t devState;
 volatile bool gotIpAddr, gotIp6Addr;
@@ -161,10 +162,12 @@ class ssh_conn {
         // Except for this bit ;)
 
         int rc;
+        libssh_begin();
         session = connect_ssh(password, host, user, 0);
         // session = connect_ssh("password", "test.rebex.net", "demo", 0);
 
         if (session == NULL) {
+            Serial.println("FAILURE! finalizeing...");
             ssh_finalize();
             return NULL;
         }
@@ -296,7 +299,7 @@ class ssh_conn {
     }
 };
 
-ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.4.202", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -337,8 +340,9 @@ int ex_main() {
             if (!hp_1_session.conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
                 // TODO: Reconnect logic for turn on
-                hp_1_session.disconnect();
-                hp_1_session.connect();
+                
+                // hp_1_session.connect();
+                hp_1_session.brutal_exception();
                 if (hp_1_session.connect() != NULL) {
                     hp_1_session.conn = true;
                 } else {
@@ -459,6 +463,8 @@ void serverTask(void *params) {
 }
 
 void setup() {
+    // Free ram
+    esp_bt_mem_release(ESP_BT_MODE_BTDM);
 
     digitalWrite(LAPTOP_HP_1, LOW);
     digitalWrite(LAPTOP_HP_2, LOW);
@@ -520,10 +526,10 @@ void setup() {
 
     // Stack size needs to be larger, so continue in a new task.
 
-    //    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
+    xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
 
     // TEMP
-    wifiMulti.run();
+    //  wifiMulti.run();
 
     // Make the server async and give it more ram
     xTaskCreatePinnedToCore(serverTask, "https443", 10240, NULL, 1, NULL, ARDUINO_RUNNING_CORE);

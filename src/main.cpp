@@ -151,11 +151,21 @@ class ssh_conn {
     }
 
     void brutal_exception() {
-        ssh_channel_close(channel);
-        ssh_channel_free(channel);
-        ssh_disconnect(session);
-        ssh_free(session);
-        ssh_finalize();
+        if (channel != nullptr) {
+            if (ssh_channel_is_open(channel)) {
+                ssh_channel_close(channel);
+            }
+            ssh_channel_free(channel);
+            channel = nullptr;
+        }
+        if (session != nullptr) {
+            if (ssh_is_connected(session)) {
+                ssh_disconnect(session);
+            }
+            ssh_free(session);
+            ssh_finalize();
+            session = nullptr;
+        }
     }
 
     ssh_channel connect() {
@@ -293,9 +303,12 @@ class ssh_conn {
     }
 
     void disconnect() {
-        ssh_disconnect(session);
-        ssh_free(session);
-        ssh_finalize();
+        if (session != nullptr) {
+            ssh_disconnect(session);
+            ssh_free(session);
+            ssh_finalize();
+            session = nullptr;
+        }
     }
 };
 

@@ -5,6 +5,9 @@ CompileFlags:
     "-std=gnu++20",
     "--target=xtensa-esp32-elf",
     "--sysroot=/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf",
+    "-I/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include",
+    "-I/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/12.2.0",
+    "-I/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/12.2.0/xtensa-esp32-elf",
     "-D__XTENSA__=1",
     "-D_GNU_SOURCE"
   ]

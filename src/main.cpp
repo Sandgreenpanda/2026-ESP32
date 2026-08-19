@@ -299,7 +299,7 @@ class ssh_conn {
     }
 };
 
-ssh_conn hp_1_session("10.47.4.202", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.6.179", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -335,8 +335,10 @@ int ex_main() {
             ssh_command = ""; // Reset command to prevent infinite loop
 
         } else if (hp_1_status_req) {
-            hp_1_session.conn = (hp_1_session.exec_cmd("echo alive") == "alive");
-
+            String cmd_output = hp_1_session.exec_cmd("echo alive");
+            cmd_output.trim();
+            hp_1_session.conn = (cmd_output == "alive");
+            Serial.println(cmd_output);
             if (!hp_1_session.conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
                 // TODO: Reconnect logic for turn on

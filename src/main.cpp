@@ -3,14 +3,14 @@
 #include "WString.h"
 #include "esp32-hal-ledc.h"
 #include "esp32-hal.h"
+#include "esp_task_wdt.h"
+#include "libssh_esp32.h"
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include <HTTPSServer.hpp>
 #include <SSLCert.hpp>
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include "esp_bt.h"
-#include "libssh_esp32.h"
 #include <functional>
 #include <libssh/libssh.h>
 #include <lwip/sockets.h>
@@ -340,7 +340,7 @@ int ex_main() {
             if (!hp_1_session.conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
                 // TODO: Reconnect logic for turn on
-                
+
                 // hp_1_session.connect();
                 hp_1_session.brutal_exception();
                 if (hp_1_session.connect() != NULL) {
@@ -377,12 +377,16 @@ void serverTask(void *params) {
 
     cert = new SSLCert();
 
+    esp_task_wdt_delete(NULL);
+
     int createCertResult = createSelfSignedCert(
         *cert,
-        KEYSIZE_1024,
+        KEYSIZE_2048,
         "CN=10.47.6.92,O=Sandgreenpanda,C=DE",
         "20190101000000",
         "20300101000000");
+
+    esp_task_wdt_add(NULL);
 
     // Now check if creating that worked
     if (createCertResult != 0) {
@@ -463,8 +467,6 @@ void serverTask(void *params) {
 }
 
 void setup() {
-    // Free ram
-    esp_bt_mem_release(ESP_BT_MODE_BTDM);
 
     digitalWrite(LAPTOP_HP_1, LOW);
     digitalWrite(LAPTOP_HP_2, LOW);

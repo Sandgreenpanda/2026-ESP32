@@ -2,12 +2,15 @@ CompileFlags:
   CompilationDatabase: .
   Add: [
     "-x", "c++",
+    "-std=gnu++20",
     "--target=xtensa-esp32-elf",
-    "-D__XREFS__",
-    "-D__XTENSA__=1"
+    "--sysroot=/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf",
+    "-D__XTENSA__=1",
+    "-D_GNU_SOURCE"
   ]
   Remove: [
     "-mlongcalls",
     "-fstrict-volatile-bitfields",
-    "-fno-tree-switch-conversion"
+    "-fno-tree-switch-conversion",
+    "-m32"
   ]

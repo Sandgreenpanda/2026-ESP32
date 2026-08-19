@@ -299,7 +299,7 @@ class ssh_conn {
     }
 };
 
-ssh_conn hp_1_session("10.47.6.179", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.0.236", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");

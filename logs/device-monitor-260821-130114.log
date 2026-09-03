@@ -1,0 +1,1253 @@
+26708 bytes
+0
+Total Heap: 325600 bytes
+Free Heap: 197828 bytes
+Used Heap: 127772 bytes
+0
+Total Heap: 325600 bytes
+Free Heap: 197816 bytes
+Used Heap: 127784 bytes
+0
+Total Heap: 325616 bytes
+Free Heap: 198748 bytes
+Used Heap: 126868 bytes
+0
+Total Heap: 325612 bytes
+Free Heap: 198868 bytes
+Used Heap: 126744 bytes
+I (7301) wifi:new:<1,0>, old:<1,0>, ap:<255,255>, sta:<1,0>, prof:1
+I (7302) wifi:state: init -> auth (b0)
+I (7349) wifi:state: auth -> assoc (0)
+I (7357) wifi:state: assoc -> run (10)
+I (7640) wifi:connected with WC Devices, aid = 1, channel 1, BW20, bssid = c8:a6:08:55:ea:ec
+I (7641) wifi:security: WPA2-PSK, phy: bgn, rssi: -58
+I (7648) wifi:pm start, type: 0
+
+% WiFi connected
+I (7689) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+0
+Total Heap: 325648 bytes
+Free Heap: 197276 bytes
+Used Heap: 126636 bytes
+I (8157) wifi:<ba-add>idx:0 (ifx:0, c8:a6:08:55:ea:ec), tid:0, ssn:0, winSize:64
+I (8177) wifi:<ba-add>idx:1 (ifx:0, c8:a6:08:55:ea:ec), tid:5, ssn:0, winSize:64
+0
+Total Heap: 325636 bytes
+Free Heap: 199540 bytes
+Used Heap: 126096 bytes
+% IPv4 Address: 10.47.3.88
+[0;32mI (9154) esp_netif_handlers: sta ip: 10.47.3.88, mask: 255.255.240.0, gw: 10.47.15.254[0m
+Wifi run finished
+
+[SNIP STDOUT START]
+Exec main begin
+0
+Total Heap: 325112 bytes
+Free Heap: 167740 bytes
+Used Heap: 157372 bytes
+Creating the certificate was successful
+Starting server...
+Server ready.
+0
+Total Heap: 325008 bytes
+Free Heap: 170244 bytes
+Used Heap: 154764 bytes
+% IPv6 Address: fe80:0000:0000:0000:024b:12ff:fe3b:c6f4
+loop begin
+0
+Total Heap: 324984 bytes
+Free Heap: 171044 bytes
+Used Heap: 153944 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154072 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 170904 bytes
+Used Heap: 154096 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171052 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170936 bytes
+Used Heap: 154068 bytes
+Keep Alive Check
+0
+Total Heap: 324972 bytes
+Free Heap: 169340 bytes
+Used Heap: 155652 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171044 bytes
+Used Heap: 153944 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 171044 bytes
+Used Heap: 155644 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 169296 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324988 bytes
+Free Heap: 171052 bytes
+Used Heap: 155660 bytes
+0
+Total Heap: 324988 bytes
+Free Heap: 171052 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+Keep Alive Check
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 153928 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170904 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324988 bytes
+Free Heap: 171052 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154052 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+Keep Alive Check
+0
+Total Heap: 324988 bytes
+Free Heap: 171044 bytes
+Used Heap: 153820 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 170904 bytes
+Used Heap: 154096 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 171024 bytes
+Used Heap: 153812 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170932 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324992 bytes
+Free Heap: 171052 bytes
+Used Heap: 153936 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171052 bytes
+Used Heap: 153936 bytes
+Keep Alive Check
+0
+Total Heap: 324984 bytes
+Free Heap: 170936 bytes
+Used Heap: 153928 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 170904 bytes
+Used Heap: 154096 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+Keep Alive Check
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 153932 bytes
+0
+Total Heap: 324992 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324988 bytes
+Free Heap: 171044 bytes
+Used Heap: 153964 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324980 bytes
+Free Heap: 171024 bytes
+Used Heap: 153960 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171044 bytes
+Used Heap: 153944 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+Keep Alive Check
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154056 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324992 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324992 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+Keep Alive Check
+0
+Total Heap: 324984 bytes
+Free Heap: 170904 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 171048 bytes
+Used Heap: 153940 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170924 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324984 bytes
+Free Heap: 170928 bytes
+Used Heap: 154080 bytes
+0
+Total Heap: 324988 bytes
+Free Heap: 171044 bytes
+Used Heap: 153820 bytes
+0
+Total Heap: 324992 bytes
+Free Heap: 171168 bytes
+Used Heap: 154064 bytes
+[HTTPS:I] New connection. Socket FID=56
+0
+Total Heap: 324712 bytes
+Free Heap: 154964 bytes
+Used Heap: 169868 bytes
+[HTTPS:E] SSL_accept failed. Aborting handshake. FID=56
+[HTTPS:I] Connection closed. Socket FID=56
+0
+Total Heap: 324956 bytes
+Free Heap: 169648 bytes
+Used Heap: 155316 bytes
+Keep Alive Check
+0
+Total Heap: 324960 bytes
+Free Heap: 169648 bytes
+Used Heap: 155316 bytes
+[HTTPS:I] New connection. Socket FID=56
+0
+Total Heap: 324716 bytes
+Free Heap: 154772 bytes
+Used Heap: 171640 bytes
+0
+Total Heap: 324632 bytes
+Free Heap: 158672 bytes
+Used Heap: 165820 bytes
+[HTTPS:I] Request: GET /terminal (FID=56)
+/terminal
+session=password=Home1918
+Home1918
+[HTTPS:I] Connection closed. Socket FID=56
+[HTTPS:I] New connection. Socket FID=56
+0
+Total Heap: 324740 bytes
+Free Heap: 157388 bytes
+Used Heap: 167356 bytes
+0
+Total Heap: 324688 bytes
+Free Heap: 160088 bytes
+Used Heap: 164452 bytes
+[HTTPS:I] Request: GET /style.css (FID=56)
+/style.css
+session=password=Home1918
+Home1918
+[HTTPS:I] Connection closed. Socket FID=56
+[HTTPS:I] New connection. Socket FID=56
+0
+Total Heap: 324788 bytes
+Free Heap: 158176 bytes
+Used Heap: 166548 bytes
+0
+Total Heap: 324712 bytes
+Free Heap: 160316 bytes
+Used Heap: 164416 bytes
+[HTTPS:I] Request: GET /ssh (FID=56)
+[HTTPS:I] Upgrading to WS, FID=56
+/ssh
+session=password=Home1918
+Home1918
+Creating new chat client!
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159900 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159920 bytes
+Keep Alive Check
+0
+Total Heap: 324824 bytes
+Free Heap: 163360 bytes
+Used Heap: 161348 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159900 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165164 bytes
+Used Heap: 159676 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 165156 bytes
+Used Heap: 159684 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165040 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324840 bytes
+Free Heap: 165040 bytes
+Used Heap: 159796 bytes
+Keep Alive Check
+0
+Total Heap: 324820 bytes
+Free Heap: 163452 bytes
+Used Heap: 161232 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159920 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 163176 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 163204 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159668 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164924 bytes
+Used Heap: 159792 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159784 bytes
+Keep Alive Check
+0
+Total Heap: 324824 bytes
+Free Heap: 163340 bytes
+Used Heap: 161348 bytes
+0
+Total Heap: 324824 bytes
+Free Heap: 164932 bytes
+Used Heap: 159900 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 161512 bytes
+0
+Total Heap: 324824 bytes
+Free Heap: 164904 bytes
+Used Heap: 159944 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159900 bytes
+Keep Alive Check
+0
+Total Heap: 324836 bytes
+Free Heap: 165164 bytes
+Used Heap: 159676 bytes
+0
+Total Heap: 324840 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 164932 bytes
+Used Heap: 159900 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164940 bytes
+Used Heap: 159920 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164940 bytes
+Used Heap: 159920 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165048 bytes
+Used Heap: 159788 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 165056 bytes
+Used Heap: 159808 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164912 bytes
+Used Heap: 159780 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164940 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165056 bytes
+Used Heap: 159896 bytes
+Keep Alive Check
+0
+Total Heap: 324828 bytes
+Free Heap: 165056 bytes
+Used Heap: 159892 bytes
+[0;32mI (139595) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+b
+ssh cmd received:
+b
+ssh command processing finished
+b
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+[0;32mI (140574) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+r
+ssh cmd received:
+r
+ssh command processing finished
+r
+[0;32mI (140890) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+o
+ssh cmd received:
+o
+ssh command processing finished
+o
+[0;32mI (141273) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+w
+ssh cmd received:
+w
+ssh command processing finished
+w
+0
+Total Heap: 324836 bytes
+Free Heap: 164924 bytes
+Used Heap: 159904 bytes
+[0;32mI (141603) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+s
+ssh cmd received:
+s
+ssh command processing finished
+s
+[0;32mI (141726) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+h
+ssh cmd received:
+h
+ssh command processing finished
+h
+0
+Total Heap: 324832 bytes
+Free Heap: 165028 bytes
+Used Heap: 159804 bytes
+0
+Total Heap: 324840 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159916 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165028 bytes
+Used Heap: 159804 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165032 bytes
+Used Heap: 161476 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159916 bytes
+Keep Alive Check
+0
+Total Heap: 324840 bytes
+Free Heap: 165040 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 164892 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 164924 bytes
+Used Heap: 159792 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164924 bytes
+Used Heap: 159940 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164924 bytes
+Used Heap: 159940 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164924 bytes
+Used Heap: 159940 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159888 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159888 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 163216 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324840 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+Keep Alive Check
+0
+Total Heap: 324832 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159916 bytes
+0
+Total Heap: 324840 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165060 bytes
+Used Heap: 159776 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159916 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159916 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164944 bytes
+Used Heap: 159916 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 165032 bytes
+Used Heap: 159800 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 164892 bytes
+Used Heap: 159792 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 164872 bytes
+Used Heap: 159824 bytes
+Keep Alive Check
+0
+Total Heap: 324832 bytes
+Free Heap: 165040 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164924 bytes
+Used Heap: 159940 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164932 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 164936 bytes
+Used Heap: 159896 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 165052 bytes
+Used Heap: 159816 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159896 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159780 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159928 bytes
+Keep Alive Check
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324836 bytes
+Free Heap: 165052 bytes
+Used Heap: 159668 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159780 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159796 bytes
+0
+Total Heap: 324828 bytes
+Free Heap: 165020 bytes
+Used Heap: 159812 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164904 bytes
+Used Heap: 159780 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159928 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159896 bytes
+Keep Alive Check
+0
+Total Heap: 324832 bytes
+Free Heap: 165052 bytes
+Used Heap: 159784 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 164936 bytes
+Used Heap: 159928 bytes
+[0;32mI (191007) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 1[0m
+[HTTPS:I] WS payload: length=1
+
+ssh cmd received:
+
+ssh command processing finished
+
+[?2004l
+[?1049h[22;0;0t[?25l[H[2J[?1000h[?1002h[?1003h[?1006h
+0
+Total Heap: 324832 bytes
+Free Heap: 165036 bytes
+Used Heap: 159896 bytes
+[0;32mI (191806) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;14;14M
+ssh cmd received:
+[<35;14;14M
+[0;32mI (191820) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+ssh command processing finished
+[HTTPS:I] WS payload: length=12
+[<35;12;14M
+ssh cmd received:
+[<35;12;14M
+ssh command processing finished
+[0;32mI (191840) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;11;15M
+ssh cmd received:
+[<35;11;15M
+ssh command processing finished
+[0;32mI (191860) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;11;16M
+ssh cmd received:
+[<35;11;16M
+ssh command processing finished
+[0;32mI (191877) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;10;17M
+ssh cmd received:
+[<35;10;17M
+ssh command processing finished
+[0;32mI (191902) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;10;18M
+ssh cmd received:
+[<35;10;18M
+ssh command processing finished
+[0;32mI (191928) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;10;19M
+ssh cmd received:
+[<35;10;19M
+ssh command processing finished
+[0;32mI (191949) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;11;20M
+ssh cmd received:
+[<35;11;20M
+ssh command processing finished
+[0;32mI (191971) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;12;20M
+ssh cmd received:
+[<35;12;20M
+ssh command processing finished
+[0;32mI (191993) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;13;21M
+ssh cmd received:
+[<35;13;21M
+ssh command processing finished
+[0;32mI (192013) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;14;21M
+ssh cmd received:
+[<35;14;21M
+ssh command processing finished
+[0;32mI (192033) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;15;22M
+ssh cmd received:
+[<35;15;22M
+ssh command processing finished
+[0;32mI (192046) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;17;22M
+ssh cmd received:
+[<35;17;22[0;32mI (192056) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+M
+[HTTPS:I] WS payload: length=12
+[<35;20;23M
+ssh command processing finished
+[0;32mI (192080) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;23;23M
+ssh cmd received:
+[<35;23;23M
+ssh command processing finished
+[0;32mI (192090) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;26;23M
+ssh cmd received:
+[<35;26;23M
+ssh command processing finished
+[0;32mI (192106) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;29;23M
+ssh cmd receiv[0;32mI (192118) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+ed:
+[<35;29;23M
+[HTTPS:I] WS payload: length=12
+[<35;32;24M
+ssh command processing finished
+[0;32mI (192142) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;36;24M
+ssh cmd received:
+[<35;36;24M
+ssh command processing finished
+[0;32mI (192151) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;39;24M
+ssh cmd received:
+[<35;39;24M
+ssh command processing finished
+[0;32mI (192167) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;41;24M
+ssh cmd received:
+[<35;41;24M
+ssh command processing finished
+[0;32mI (192183) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;44;24M
+ssh cmd received:
+[<35;44;24M
+[0;32mI (192201) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Lens: 12[0m
+sh command processing finished[HTTPS:I] 
+WS payload: length=12
+[<35;46;24M
+[0;32mI (192221) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+[<35;48;24M
+[?25l[H[2J[1;1H                     [0;32mI (192229) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+                                                                               [2;1H ////  ////                                                                                         [3;1H  / /   / /              [HTTPS:I] 
+WS payload: length=12ssh cmd received:
+
+[<35;48;24M
+[<35;50;24M
+ssh command processing finished
+                                                                           [4;1H  //    //                  [0;32mI (192271) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+                                                                        [5;1H  //    //    ,,,,,,,,                                               
+[HTTPS:I] WS payload: length=12
+[<35;52;24M
+ssh cmd received:
+[<35;52;24M
+[0;32mI (192306) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+[HTTPS:I] WS payload: length=12
+ssh command processing finished
+[<35;54;24M
+                               [6[0;32mI (192318) HTTPS_SERVER: Fin: 1, OpCode: 1 (TEXT), Mask: 1, Len: 12[0m
+;1H  ////////  ..,,,,,,,,,                                                                             [7;1H  //    //  .., ,,, .,.                                                                             [8;1H  /////
+[HTTPS:I] WS payload: length=12ssh cmd received:
+
+[<35;54;24M
+[<35;56;24M
+ssh command processing finished
+///  .., ,,,,,..                                                                             [9;1H  ////////  ..,,,,,,,,,                                                                             [10;1H  ////////    ...........                         
+                                                  [11;1H  //////////                                                                                        [12;1H  ****///////////////////                                                                   
+        [13;1H    ********///////////////                                                                         [14;1H      ***********************                                                                       [15;1H                           
+                                                                         [16;1HStarting Browsh v1.8.0, the modern text-based web browser.                                          [17;1HWaiting for Firefox to connect...                                    
+                               [18;1H                                                                                                    [19;1H                                                                                                    [20;1H    
+                                                                                                [21;1H                                                                                                    [22;1H                                              
+                                                      [23;1H                                                                                                    [24;1H                                                                                        
+            [25;1H                                                                                                    [26;1H                                                                                                    [27;1H                       
+                                                                             [28;1H                                                                                                    [29;1H                                                                 
+                                   [30;1H                                                                                                    [?25l
+0
+Total Heap: 324828 bytes
+Free Heap: 159428 bytes
+Used Heap: 165524 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 159428 bytes
+Used Heap: 165408 bytes
+0
+Total Heap: 324832 bytes
+Free Heap: 159308 bytes
+Used Heap: 165524 bytes
+[?25l[1;1H(B[m[7mBrowsh              (B[m|[2;1Hhttps:/[2;9Hwww.brow.sh/[3;1H(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;1
+21;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;
+169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m
+[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;
+169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121
+;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38
+;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121
+m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48
+;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;
+169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m�
+�(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;169;169;169m▄(B[m[38;2;169;169;169;48;2;121;121;121m▄(B[m[38;2;121;121;121;48;2;[HTTPS:E] 
+An receive error occured, FID=56
+Guru Meditation Error: Core  0 panic'ed (LoadProhibited). Exception was unhandled.
+
+Core  0 register dump:
+PC      : 0x4013cabb  PS      : 0x00060830  A0      : 0x80139fba  A1      : 0x3ffcea00  
+  #0  0x4013cabb in esp_mbedtls_add_tx_buffer at /home/alext/.platformio/packages/framework-espidf/components/mbedtls/port/dynamic/esp_mbedtls_dynamic_impl.c:244
+
+A2      : 0x00000100  A3      : 0x00000000  A4      : 0x00000000  A5      : 0x00000001  
+A6      : 0x343b3132  A7      : 0x3b323b38  A8      : 0x80138649  A9      : 0x3ffce9e0  
+A10     : 0xffffffe0  A11     : 0x00000001  A12     : 0x3ffe3754  A13     : 0x3ffe3bb8  
+A14     : 0x0000007e  A15     : 0x08f8e349  SAR     : 0x00000018  EXCCAUSE: 0x0000001c  
+EXCVADDR: 0x00000194  LBEG    : 0x40135898  LEND    : 0x40135950  LCOUNT  : 0x00000000  
+
+
+Backtrace: 0x4013cab8:0x3ffcea00 0x40139fb7:0x3ffcea40 0x400f1c85:0x3ffcea60 0x401a0c96:0x3ffcea80 0x400d878d:0x3ffceaa0 0x400d6abe:0x3ffceac0 0x400d49a3:0x3ffceaf0 0x400d4a45:0x3ffcec40 0x4019fd41:0x3ffcec80 0x400d54e4:0x3ffceca0 0x400d38bb:0x3ffcecc0
+  #0  0x4013cab8 in esp_mbedtls_add_tx_buffer at /home/alext/.platformio/packages/framework-espidf/components/mbedtls/port/dynamic/esp_mbedtls_dynamic_impl.c:236
+  #1  0x40139fb7 in __wrap_mbedtls_ssl_write at /home/alext/.platformio/packages/framework-espidf/components/mbedtls/port/dynamic/esp_ssl_tls.c:195
+  #2  0x400f1c85 in ssl_pm_send at /home/alext/.platformio/packages/framework-espidf/components/openssl/platform/ssl_pm.c:424
+  #3  0x401a0c96 in SSL_write at /home/alext/.platformio/packages/framework-espidf/components/openssl/library/ssl_lib.c:470
+  #4  0x400d878d in httpsserver::HTTPSConnection::writeBuffer(unsigned char*, unsigned int) at .pio/libdeps/esp32doit-devkit-v1/esp32_https_server/src/HTTPSConnection.cpp:108
+  #5  0x400d6abe in httpsserver::WebsocketHandler::send(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, unsigned char) at .pio/libdeps/esp32doit-devkit-v1/esp32_https_server/src/WebsocketHandler.cpp:211
+  #6  0x400d49a3 in ssh_conn::read() at src/main.cpp:231
+  #7  0x400d4a45 in ex_main() at src/main.cpp:346 (discriminator 2)
+  #8  0x4019fd41 in std::_Function_handler<int (), int (*)()>::_M_invoke(std::_Any_data const&) at /home/alext/.platformio/packages/toolchain-xtensa-esp32@8.4.0+2021r2-patch5/xtensa-esp32-elf/include/c++/8.4.0/bits/std_function.h:282
+  #9  0x400d54e4 in std::function<int ()>::operator()() const at /home/alext/.platformio/packages/toolchain-xtensa-esp32@8.4.0+2021r2-patch5/xtensa-esp32-elf/include/c++/8.4.0/bits/std_function.h:687
+      (inlined by) wait_for_wifi_exec(std::function<int ()>) at src/ssh_functions.cpp:83
+  #10 0x400d38bb in controlTask(void*) at src/main.cpp:391
+
+
+
+
+
+ELF file SHA256: f7b52d4fcbbc249a
+
+Rebooting...
+ets Jul 29 2019 12:21:46
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6652
+ho 0 tail 12 room 4
+load:0x40078000,len:15052
+load:0x40080400,len:3836
+  #0  0x40080400 in _init at ??:?
+
+entry 0x4008069c
+[0;32mI (29) boot: ESP-IDF 4.4.7 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 13:00:46[0m
+[0;32mI (29) boot: Multicore bootloader[0m
+[0;32mI (32) boot: chip revision: v3.1[0m
+[0;32mI (36) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (41) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (45) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (50) boot: Enabling RNG early entropy source...[0m
+[0;32mI (55) boot: Partition Table:[0m
+[0;32mI (59) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (66) boot:  0 nvs              WiFi data        01 02 00009000 00004000[0m
+[0;32mI (73) boot:  1 otadata          OTA data         01 00 0000d000 00002000[0m
+[0;32mI (81) boot:  2 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (88) boot:  3 factory          factory app      00 00 00010000 00200000[0m
+[0;32mI (96) boot: End of partition table[0m
+[0;32mI (100) boot: Defaulting to factory image[0m
+[0;32mI (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=392e0h (234208) map[0m
+[0;32mI (198) esp_image: segment 1: paddr=00049308 vaddr=3ffb0000 size=05998h ( 22936) load[0m
+[0;32mI (207) esp_image: segment 2: paddr=0004eca8 vaddr=40080000 size=01370h (  4976) load[0m
+[0;32mI (210) esp_image: segment 3: paddr=00050020 vaddr=400d0020 size=d8968h (887144) map[0m
+[0;32mI (536) esp_image: segment 4: paddr=00128990 vaddr=40081370 size=1372ch ( 79660) load[0m
+[0;32mI (579) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (579) boot: Disabling RNG early entropy source...[0m
+[0;32mI (591) cpu_start: Multicore app[0m
+[0;32mI (591) cpu_start: Pro cpu up.[0m
+[0;32mI (591) cpu_start: Starting app cpu, entry point is 0x40081dd4[0m
+  #0  0x40081dd4 in call_start_cpu1 at /home/alext/.platformio/packages/framework-espidf/components/esp_system/port/cpu_start.c:151
+
+[0;32mI (579) cpu_start: App cpu up.[0m
+[0;32mI (609) cpu_start: Pro cpu start user code[0m
+[0;32mI (609) cpu_start: cpu freq: 160000000[0m
+[0;32mI (609) cpu_start: Application information:[0m
+[0;32mI (614) cpu_start: Project name:     Esp32-DIGI[0m
+[0;32mI (619) cpu_start: App version:      7dd10a6-dirty[0m
+[0;32mI (624) cpu_start: Compile time:     Aug 21 2026 13:00:20[0m
+[0;32mI (630) cpu_start: ELF file SHA256:  f7b52d4fcbbc249a...[0m
+[0;32mI (636) cpu_start: ESP-IDF:          4.4.7[0m
+[0;32mI (641) cpu_start: Min chip rev:     v0.0[0m
+[0;32mI (646) cpu_start: Max chip rev:     v3.99 [0m
+[0;32mI (651) cpu_start: Chip rev:         v3.1[0m
+[0;32mI (656) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (663) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (669) heap_init: At 3FFBBC38 len 000243C8 (144 KiB): DRAM[0m
+[0;32mI (675) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (681) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (688) heap_init: At 40094A9C len 0000B564 (45 KiB): IRAM[0m
+[0;32mI (695) spi_flash: detected chip: generic[0m
+[0;32mI (699) spi_flash: flash io: dio[0m
+[0;32mI (710) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (777) gpio: GPIO[33]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (778) gpio: GPIO[32]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (785) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (795) gpio: GPIO[27]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (804) gpio: GPIO[26]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (813) gpio: GPIO[25]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (823) gpio: GPIO[22]| In[0;32mI (837) gpio: GPIO[17]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (837) gpio: GPIO[16]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (845) gpio: GPIO[18]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (854) gpio: GPIO[19]| InputEn: 1| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+SD mount successful
+Creating a new self-signed certificate.
+This may take up to a minute, so be patient ;-)
+I (891) wifi:wifi driver task: 3ffd29e0, prio:23, stack:6656, core=0
+I (911) wifi:wifi firmware version: 1fd20f4
+I (911) wifi:wifi certification version: v7.0
+I (912) wifi:config NVS flash: enabled
+I (912) wifi:config nano formating: disabled
+I (916) wifi:Init data frame dynamic rx buffer num: 32
+I (921) wifi:Init static rx mgmt buffer num: 5
+I (925) wifi:Init management short buffer num: 32
+I (929) wifi:Init dynamic tx buffer num: 32
+I (933) wifi:Init static rx buffer size: 1600
+I (937) wifi:Init static rx buffer num: 4
+I (941) wifi:Init dynamic rx buffer num: 32
+[0;32mI (946) wifi_init: rx ba win: 6[0m
+[0;32mI (949) wifi_init: tcpip mbox: 32[0m
+[0;32mI (953) wifi_init: udp mbox: 6[0m
+[0;32mI (956) wifi_init: tcp mbox: 6[0m
+[0;32mI (960) wifi_init: tcp tx win: 5760[0m
+[0;32mI (964) wifi_init: tcp rx win: 5760[0m
+[0;32mI (968) wifi_init: tcp mss: 1440[0m
+[0;32mI (972) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (977) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (984) phy_init: phy_version 4791,2c4672b,Dec 20 2023,16:06:06[0m
+I (1077) wifi:mode : sta (00:4b:12:3b:c6:f4)
+I (1078) wifi:enable tsf
+Connecting to wifi...
+I (1079) wifi:Set ps type: 0
+
+0
+Total Heap: 325668 bytes
+Free Heap: 200328 bytes
+Used Heap: 125340 bytes
+0
+Total Heap: 325656 bytes
+Free Heap: 200216 bytes
+Used Heap: 125440 bytes
+0
+Total Heap: 325632 bytes
+Free Heap: 199408 bytes
+Used Heap: 126224 bytes
+0
+Total Heap: 325620 bytes
+Free Heap: 198340 bytes
+Used Heap: 127280 bytes
+0
+Total Heap: 325628 bytes
+Free Heap: 199276 bytes
+Used Heap: 126352 bytes
+0
+Total Heap: 325620 bytes
+Free Heap: 198336 bytes
+Used Heap: 127284 bytes
+I (7101) wifi:new:<1,0>, old:<1,0>, ap:<255,255>, sta:<1,0>, prof:1
+I (7103) wifi:state: init -> auth (b0)
+I (7156) wifi:state: auth -> assoc (0)
+I (7168) wifi:state: assoc -> run (10)
+I (7213) wifi:connected with WC Devices, aid = 1, channel 1, BW20, bssid = c8:a6:08:55:ea:ec
+I (7214) wifi:security: WPA2-PSK, phy: bgn, rssi: -57
+I (7221) wifi:pm start, type: 0
+
+% WiFi connected
+I (7248) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (7728) wifi:<ba-add>idx:0 (ifx:0, c8:a6:08:55:ea:ec), tid:0, ssn:0, winSize:64
+I (7737) wifi:<ba-add>idx:1 (ifx:0, c8:a6:08:55:ea:ec), tid:5, ssn:0, winSize:64
+0
+Total Heap: 325640 bytes
+Free Heap: 199804 bytes
+Used Heap: 125836 bytes
+% IPv4 Address: 10.47.3.88
+[0;32mI (8726) esp_netif_handlers: sta ip: 10.47.3.88, mask: 255.255.240.0, gw: 10.47.15.254[0m
+Wifi run finished
+
+[SNIP STDOUT START]
+Exec main begin
+0
+Total Heap: 325260 bytes
+Free Heap: 185596 bytes
+Used Heap: 141396 bytes
+Creating the certificate was successful
+Starting server...
+Server ready.
+0
+Total Heap: 325016 bytes
+Free Heap: 172088 bytes
+Used Heap: 152928 bytes
+% IPv6 Address: fe80:0000:0000:0000:024b:12ff:fe3b:c6f4
+loop begin

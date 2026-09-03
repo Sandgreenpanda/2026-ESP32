@@ -131,6 +131,7 @@ class SSHHandler : public WebsocketHandler {
 
 // Simple array to store the active clients:
 SSHHandler *activeClients[MAX_CLIENTS];
+SemaphoreHandle_t clientsMutex = NULL;
 
 class ssh_conn {
     // All my code :)
@@ -216,21 +217,31 @@ class ssh_conn {
         char buffer[256];
         int rbytes;
 
-        shh_output_send_temp = "";
-        rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+        if (channel != nullptr && session != nullptr && ssh_channel_is_open(channel) && ssh_is_connected(session)) {
 
-        if (rbytes > 0) {
+            shh_output_send_temp = "";
+            rbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
 
-            std::string msg(buffer, rbytes);
-            for (int i = 0; i < MAX_CLIENTS; i++) {
-                if (activeClients[i] != nullptr) {
-                    // Serial.print("THIS +");
-                    Serial.println(msg.c_str());
-                    activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
+            if (rbytes > 0) {
+
+                std::string msg(buffer, rbytes);
+                if (clientsMutex != NULL && xSemaphoreTake(clientsMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                    for (int i = 0; i < MAX_CLIENTS; i++) {
+                        if (activeClients[i] != nullptr) {
+                            // Serial.print("THIS +");
+                            //  Serial.println(msg.c_str());
+                            activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
+                        }
+                    }
+                    xSemaphoreGive(clientsMutex);
+                } else {
+                    Serial.println("Could not acquire lock on msg");
                 }
-            }
-        };
-        return rbytes;
+            };
+            return rbytes;
+        }
+        return -1;
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
     void write(String command) {
@@ -310,9 +321,76 @@ class ssh_conn {
             session = nullptr;
         }
     }
+
+// Ignore deprecated warnings
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    int scp_write() {
+        // This function is straight from the libssh docs
+
+        // scp is labeled as deprecated due to a security concern around connecting to untrusted servers. However you would have to be
+        // On the same wifi network to take advantage of this, and since both esp and laptops remain static, Everything is fine.
+        ssh_scp scp;
+        int rc;
+
+        scp = ssh_scp_new(session, SSH_SCP_READ, "helloworld/helloworld.txt");
+        if (scp == NULL) {
+            Serial.printf("Error allocating scp session: %s\n", ssh_get_error(session));
+            return SSH_ERROR;
+        }
+
+        rc = ssh_scp_init(scp);
+        if (rc != SSH_OK) {
+            Serial.printf("Error initializing scp session: %s\n", ssh_get_error(session));
+            ssh_scp_free(scp);
+            return rc;
+        }
+
+        int mode;
+        size_t size;
+        char *filename, *buffer;
+
+        rc = ssh_scp_pull_request(scp);
+        if (rc != SSH_SCP_REQUEST_NEWFILE) {
+            Serial.printf("Error receiving information about file: %s\n", ssh_get_error(session));
+            return SSH_ERROR;
+        }
+
+        size = ssh_scp_request_get_size(scp);
+        filename = strdup(ssh_scp_request_get_filename(scp));
+        mode = ssh_scp_request_get_permissions(scp);
+        Serial.printf("Receiving file %s, size %d, permissions 0%o\n", filename, size, mode);
+        free(filename);
+
+        // Memaloc... c things...
+        buffer = static_cast<char *>(malloc(size));
+
+        ssh_scp_accept_request(scp);
+        rc = ssh_scp_read(scp, buffer, size);
+        if (rc == SSH_ERROR) {
+            Serial.printf("Error receiving file data: %s\n", ssh_get_error(session));
+            free(buffer);
+            return rc;
+        }
+        Serial.printf("Done\n");
+
+        ::write(1, buffer, size);
+        free(buffer);
+
+        rc = ssh_scp_pull_request(scp);
+        if (rc != SSH_SCP_REQUEST_EOF) {
+            Serial.printf("Unexpected request: %s\n", ssh_get_error(session));
+            return SSH_ERROR;
+        }
+
+        return SSH_OK;
+
+        ssh_scp_close(scp);
+        ssh_scp_free(scp);
+        return SSH_OK;
+    }
 };
 
-ssh_conn hp_1_session("10.47.0.236", "alext", "Home1918");
+ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -524,6 +602,10 @@ void setup() {
     devState = STATE_NEW;
 
     Serial.begin(115200);
+    clientsMutex = xSemaphoreCreateMutex();
+    if (clientsMutex == NULL) {
+        Serial.println("Error: Failed to create clientsMutex!");
+    }
 
     sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
     if (!SD.begin(SD_CS, sdSPI)) {
@@ -563,6 +645,10 @@ void loop() {
         //  Serial.printf("[CLIENT 1 ACTIVE] Free Heap: %d | Max Contiguous Block: %d\n",
         //              ESP.getFreeHeap(), ESP.getMaxAllocHeap());
         lastTachTime = millis();
+
+        Serial.printf("Total Heap: %d bytes\n", ESP.getHeapSize());
+        Serial.printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
+        Serial.printf("Used Heap: %d bytes\n", ESP.getHeapSize() - ESP.getFreeHeap());
 
         // Serial.println("CORE:");
         // Serial.println(xPortGetCoreID());
@@ -632,22 +718,31 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res) {
 WebsocketHandler *SSHHandler::create() {
     Serial.println("Creating new chat client!");
     SSHHandler *handler = new SSHHandler();
-
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (activeClients[i] == nullptr) {
-            activeClients[i] = handler;
-            break;
+    if (clientsMutex != NULL && xSemaphoreTake(clientsMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClients[i] == nullptr) {
+                activeClients[i] = handler;
+                break;
+            }
         }
+        xSemaphoreGive(clientsMutex);
+    } else {
+        Serial.println("Unable to take variable lock");
     }
     return handler;
 }
 
 // When the websocket is closing, we remove the client from the array
 void SSHHandler::onClose() {
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (activeClients[i] == this) {
-            activeClients[i] = nullptr;
+    if (clientsMutex != NULL && xSemaphoreTake(clientsMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClients[i] == this) {
+                activeClients[i] = nullptr;
+            }
         }
+        xSemaphoreGive(clientsMutex);
+    } else {
+        Serial.println("Unable to take variable lock");
     }
 }
 

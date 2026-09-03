@@ -19,20 +19,24 @@
     </ul>
     <div id="terminal"></div>
     <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
-    <form action="/toggle1" method="post" target="dummyframe">Toggle HP 1<input type="submit"></form>
-    <label for="hp1_reconnect" id="hp1_reconnect_label">true</label>
+    <form action="/toggle1" method="post" target="dummyframe"><input type="submit" value="Toggle HP 1"></form>
     <p> </p>
-    <button type="button" id="hp1_reconnect">Reconnect</button>
+    <button style="background-color: #0ab304;" type="button" id="hp1_reconnect">Reconnect</button>
 
 
     <script>
         const hp1_reconnect = document.getElementById("hp1_reconnect");
-        const hp1_reconnect_label = document.getElementById("hp1_reconnect_label");
         hp1_reconnect.addEventListener("click", function (event) {
+            hp1_reconnect.style.filter = 'brightness(0.5)';
             fetch("/SSH1Status", {
                 method: "POST"
             }).then(response => response.text()).then(data => {
-                hp1_reconnect_label.textContent = data;
+                hp1_reconnect.style.filter = 'brightness(1)';
+                if (data.trim() == "0") {
+                    hp1_reconnect.style.backgroundColor = "#ff0000"
+                } else {
+                    hp1_reconnect.style.backgroundColor = "#0ab304"
+                }
             })
         });
 

@@ -5,10 +5,14 @@
 #include "esp32-hal.h"
 #include "esp_task_wdt.h"
 #include "libssh_esp32.h"
+#include <FS.h>
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include <HTTPSServer.hpp>
+#include <SD.h>
+#include <SPI.h>
 #include <SSLCert.hpp>
+#include <URLCode.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <functional>
@@ -16,10 +20,6 @@
 #include <lwip/sockets.h>
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
-
-#include <FS.h>
-#include <SD.h>
-#include <SPI.h>
 #define SD_MISO 16
 #define SD_SCK 17
 #define SD_MOSI 18
@@ -52,6 +52,8 @@ SPIClass sdSPI(VSPI);
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
+
+URLCode fp_encoded;
 
 WiFiMulti wifiMulti;
 
@@ -89,6 +91,7 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res);
 void handleAdmin(HTTPRequest *req, HTTPResponse *res);
 void handleLogIn(HTTPRequest *req, HTTPResponse *res);
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res);
+void handleSCP(HTTPRequest *req, HTTPResponse *res);
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
 
@@ -101,6 +104,8 @@ const unsigned int configSTACK = 21200;
 volatile devState_t devState;
 volatile bool gotIpAddr, gotIp6Addr;
 volatile bool wifiPhyConnected;
+
+String scp_command = "";
 
 String ssh_command = "";
 String shh_output_string = "";
@@ -324,7 +329,7 @@ class ssh_conn {
 
 // Ignore deprecated warnings
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    int scp_write() {
+    int scp_read(String filepath) {
         // This function is straight from the libssh docs
 
         // scp is labeled as deprecated due to a security concern around connecting to untrusted servers. However you would have to be
@@ -332,7 +337,7 @@ class ssh_conn {
         ssh_scp scp;
         int rc;
 
-        scp = ssh_scp_new(session, SSH_SCP_READ, "helloworld/helloworld.txt");
+        scp = ssh_scp_new(session, SSH_SCP_READ, filepath.c_str());
         if (scp == NULL) {
             Serial.printf("Error allocating scp session: %s\n", ssh_get_error(session));
             return SSH_ERROR;
@@ -373,7 +378,10 @@ class ssh_conn {
         }
         Serial.printf("Done\n");
 
-        ::write(1, buffer, size);
+        Serial.write((const uint8_t *)buffer, size);
+
+        Serial.println();
+
         free(buffer);
 
         rc = ssh_scp_pull_request(scp);
@@ -390,7 +398,7 @@ class ssh_conn {
     }
 };
 
-ssh_conn hp_1_session("192.168.1.25", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.3.20", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -425,6 +433,9 @@ int ex_main() {
             hp_1_session.write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
 
+        } else if (scp_command != "" && hp_1_session.conn) {
+            hp_1_session.scp_read(scp_command);
+            scp_command = "";
         } else if (hp_1_status_req) {
             String cmd_output = hp_1_session.exec_cmd("echo alive");
             cmd_output.trim();
@@ -512,6 +523,7 @@ void serverTask(void *params) {
     ResourceNode *nodehandleSSHpage = new ResourceNode("/sshpage", "GET", &handleSSHpage);
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
     ResourceNode *nodeSSHStatus1 = new ResourceNode("/SSH1Status", "POST", &handleSSHStatus1);
+    ResourceNode *nodeSCP = new ResourceNode("/scp", "POST", &handleSCP);
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -519,6 +531,7 @@ void serverTask(void *params) {
 
     // Add the root node to the server
     secureServer->registerNode(nodeRoot);
+    secureServer->registerNode(nodeSCP);
     // Add the 404 not found node to the server.
     secureServer->setDefaultNode(node404);
     // Add Terminal node
@@ -843,6 +856,22 @@ void handleFan(HTTPRequest *req, HTTPResponse *res) {
     ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
     // ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
     // Serial.println(fanSpeedInput.substring(6).toInt());
+}
+
+void handleSCP(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/plain");
+    byte buffer[256];
+
+    String filepath = "";
+    while (!(req->requestComplete())) {
+        size_t s = req->readBytes(buffer, 256);
+        filepath += String(buffer, s);
+    }
+    fp_encoded.urlcode = filepath;
+    fp_encoded.urldecode();
+    String fp = fp_encoded.strcode;
+    scp_command = fp.substring(9, filepath.length());
+    Serial.println(scp_command);
 }
 
 // TODO: Update this to use one rout

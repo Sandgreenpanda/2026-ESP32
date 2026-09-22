@@ -5,6 +5,7 @@
 #include "esp32-hal.h"
 #include "esp_task_wdt.h"
 #include "libssh_esp32.h"
+#include "mbedtls/sha256.h"
 #include <FS.h>
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
@@ -17,12 +18,13 @@
 #include <WiFiMulti.h>
 #include <bits/stdc++.h>
 #include <functional>
+#include <keyValueDatabase.hpp>
 #include <libssh/libssh.h>
 #include <lwip/sockets.h>
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
-#include <keyValueDatabase.hpp>
-#include "mbedtls/sha256.h"
+#include <utility>
+#include <vector>
 #define SD_MISO 16
 #define SD_SCK 17
 #define SD_MOSI 18
@@ -54,7 +56,6 @@ boolean acer_2_status_req = false;
 SPIClass sdSPI(VSPI);
 
 keyValueDatabase<String, String> Session_dict;
-
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -404,6 +405,16 @@ class ssh_conn {
     }
 };
 
+String FuncReadTemplate(String path, std::initializer_list<std::pair<String, String>> args) {
+    String file = SD.open(path, FILE_READ).readString();
+
+    for (const auto &arg : args) {
+        file.replace(arg.first, arg.second);
+    }
+
+    return file;
+}
+
 ssh_conn hp_1_session("10.47.3.20", "alext", "Home1918");
 
 int ex_main() {
@@ -694,17 +705,22 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     // Extract the password from the cookie
     String Cookie = user_password_raw.substring(user_password_raw.lastIndexOf("=") + 1, user_password_raw.length());
 
+    Serial.println(Cookie);
+
+    Session_dict.clearErrorFlags();
     String user_password = Session_dict[Cookie.c_str()];
     if (Session_dict.errorFlags()) {
         user_password = "";
     }
-
 
     Serial.println("THE NEXT PRINT IS THE USER PASSWORD STRING:");
     Serial.println(user_password);
     Serial.println("THE NEXT PRINT IS THE USER PASSWORD STRING [END]");
 
     String user_password_trimmed = user_password.substring(user_password.lastIndexOf("=") + 1, user_password.length());
+
+    Serial.println(user_password_trimmed);
+    Serial.println(PASSWORD);
 
     if (user_password_trimmed == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
         if (user_password_trimmed == PASSWORD && req_str == "/admin") {
@@ -985,6 +1001,10 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
     std::string hexStr = std::accumulate(shaResult, shaResult + 32, std::string{}, [](std::string str, uint8_t byte) {char buf[3];sprintf(buf, "%02x", byte);return str + buf; });
 
     Session_dict[hexStr.c_str()] = Session;
+
+    Serial.println("KVDB HEX, Session vvv");
+    Serial.println(hexStr.c_str());
+    Serial.println(Session);
 
     String Cookie = String("session=") + hexStr.c_str() + String("; Path=/; SameSite=Strict; Secure");
     res->setHeader("Set-Cookie", Cookie.c_str());

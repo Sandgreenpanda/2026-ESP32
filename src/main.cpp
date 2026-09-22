@@ -725,24 +725,20 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     if (user_password_trimmed == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
         if (user_password_trimmed == PASSWORD && req_str == "/admin") {
             res->setHeader("Content-Type", "text/html");
-            res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
+            res->println(FuncReadTemplate("/templates/log_out.html", {}));
         } else {
             next();
         }
     } else {
         res->setStatusCode(404);
         res->setHeader("Content-Type", "text/html");
-        String file = SD.open("/templates/admin.html", FILE_READ).readString();
-        file.replace("%ERROR%", "You need to log in to access this page");
-        res->println(file);
+        res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", "You need to log in to access this page"}}));
     }
 }
 
 void handleRoot(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    String file = SD.open("/templates/home.html", FILE_READ).readString();
-    file.replace("%TIME%", (String)((int)(millis() / 1000)));
-    res->println(file);
+    res->println(FuncReadTemplate("/templates/home.html", {{"%TIME%", (String)((int)(millis() / 1000))}}));
 }
 
 void handleStyle(HTTPRequest *req, HTTPResponse *res) {
@@ -757,15 +753,14 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Connection", "close");
     res->setHeader("Content-Type", "text/html");
 
-    res->println(SD.open("/templates/terminal.html", FILE_READ).readString());
+    res->println(FuncReadTemplate("/templates/terminal.html", {}));
 };
 
 void handleComputers(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(SD.open("/templates/computers.html", FILE_READ).readString());
+    res->println(FuncReadTemplate("/templates/computers.html", {}));
 };
 
-// Websockets
 WebsocketHandler *SSHHandler::create() {
     Serial.println("Creating new chat client!");
     SSHHandler *handler = new SSHHandler();
@@ -961,14 +956,12 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    String file = SD.open("/templates/admin.html", FILE_READ).readString();
-    file.replace("%ERROR%", "");
-    res->println(file);
+    res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", ""}}));
 };
 
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(SD.open("/templates/websocket.html", FILE_READ).readString());
+    res->println(FuncReadTemplate("/templates/websocket.html", {}));
 };
 
 void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
@@ -1010,11 +1003,9 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Set-Cookie", Cookie.c_str());
     res->setHeader("Content-Type", "text/html");
     if (Session == PASSWORD) {
-        res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
+        res->println(FuncReadTemplate("/templates/log_out.html", {{"%LOGGED_In%", ""}}));
     } else {
-        String file = SD.open("/templates/admin.html", FILE_READ).readString();
-        file.replace("%ERROR%", "The provided password was incorrect");
-        res->println(file);
+        res->println(FuncReadTemplate("/templates/computers.html", {{"%ERROR%", "The provided password was incorrect"}}));
     }
 };
 

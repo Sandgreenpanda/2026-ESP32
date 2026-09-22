@@ -70,3 +70,7 @@ a.selected {
 .error {
   color: red;
 }
+
+.logout {
+  background-color: red;
+}

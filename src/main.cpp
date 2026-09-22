@@ -15,11 +15,14 @@
 #include <URLCode.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <bits/stdc++.h>
 #include <functional>
 #include <libssh/libssh.h>
 #include <lwip/sockets.h>
 #include <sha/sha_parallel_engine.h>
 #include <ssh_functions.h>
+#include <keyValueDatabase.hpp>
+#include "mbedtls/sha256.h"
 #define SD_MISO 16
 #define SD_SCK 17
 #define SD_MOSI 18
@@ -49,6 +52,9 @@ boolean acer_2_status_req = false;
 
 // Spi for the sd card file system
 SPIClass sdSPI(VSPI);
+
+keyValueDatabase<String, String> Session_dict;
+
 
 // The HTTPS Server comes in a separate namespace. For easier use, include it here.
 using namespace httpsserver;
@@ -627,6 +633,9 @@ void setup() {
         Serial.println("SD mount successful");
     }
 
+    // Begin the session storage
+    Session_dict.Open("/data/session.kvdb");
+
     // Real password is initialed from the SD
     PASSWORD = SD.open("/crypto/password.txt", FILE_READ).readString();
 
@@ -683,11 +692,22 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     Serial.println(user_password_raw);
 
     // Extract the password from the cookie
-    String user_password = user_password_raw.substring(user_password_raw.lastIndexOf("=") + 1, user_password_raw.length());
-    Serial.println(user_password);
+    String Cookie = user_password_raw.substring(user_password_raw.lastIndexOf("=") + 1, user_password_raw.length());
 
-    if (user_password == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
-        if (user_password == PASSWORD && req_str == "/admin") {
+    String user_password = Session_dict[Cookie.c_str()];
+    if (Session_dict.errorFlags()) {
+        user_password = "";
+    }
+
+
+    Serial.println("THE NEXT PRINT IS THE USER PASSWORD STRING:");
+    Serial.println(user_password);
+    Serial.println("THE NEXT PRINT IS THE USER PASSWORD STRING [END]");
+
+    String user_password_trimmed = user_password.substring(user_password.lastIndexOf("=") + 1, user_password.length());
+
+    if (user_password_trimmed == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
+        if (user_password_trimmed == PASSWORD && req_str == "/admin") {
             res->setHeader("Content-Type", "text/html");
             res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
         } else {
@@ -696,7 +716,9 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     } else {
         res->setStatusCode(404);
         res->setHeader("Content-Type", "text/html");
-        res->println(SD.open("/templates/no_auth.html", FILE_READ).readString());
+        String file = SD.open("/templates/admin.html", FILE_READ).readString();
+        file.replace("%ERROR%", "You need to log in to access this page");
+        res->println(file);
     }
 }
 
@@ -923,7 +945,9 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(SD.open("/templates/admin.html", FILE_READ).readString());
+    String file = SD.open("/templates/admin.html", FILE_READ).readString();
+    file.replace("%ERROR%", "");
+    res->println(file);
 };
 
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res) {
@@ -939,16 +963,39 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
         size_t s = req->readBytes(buffer, 256);
         data += String(buffer, s);
     }
+    Serial.println("DATA HERE vvvv");
     Serial.println(data);
 
-    String Session = data; //.substring(11, data.length() - 1);
+    String Session = data.substring(9, data.length());
     Serial.println(Session);
 
     res->setHeader("Content-Type", "text/html");
-    String Cookie = "session=" + Session + "; Path=/; SameSite=Strict; Secure";
+
+    byte shaResult[32]; // SHA-256 produces a 32-byte (256-bit) digest
+
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    mbedtls_sha256_starts(&ctx, 0);
+
+    mbedtls_sha256_update(&ctx, (const unsigned char *)Session.c_str(), Session.length());
+    mbedtls_sha256_finish(&ctx, shaResult);
+    mbedtls_sha256_free(&ctx);
+
+    // Convert the bytes to c str
+    std::string hexStr = std::accumulate(shaResult, shaResult + 32, std::string{}, [](std::string str, uint8_t byte) {char buf[3];sprintf(buf, "%02x", byte);return str + buf; });
+
+    Session_dict[hexStr.c_str()] = Session;
+
+    String Cookie = String("session=") + hexStr.c_str() + String("; Path=/; SameSite=Strict; Secure");
     res->setHeader("Set-Cookie", Cookie.c_str());
     res->setHeader("Content-Type", "text/html");
-    res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
+    if (Session == PASSWORD) {
+        res->println(SD.open("/templates/log_out.html", FILE_READ).readString());
+    } else {
+        String file = SD.open("/templates/admin.html", FILE_READ).readString();
+        file.replace("%ERROR%", "The provided password was incorrect");
+        res->println(file);
+    }
 };
 
 void handle404(HTTPRequest *req, HTTPResponse *res) {

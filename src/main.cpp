@@ -415,7 +415,7 @@ String FuncReadTemplate(String path, std::initializer_list<std::pair<String, Str
     return file;
 }
 
-ssh_conn hp_1_session("10.47.3.20", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.7.41", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -725,20 +725,20 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     if (user_password_trimmed == PASSWORD || req_str == "/style.css" || req_str == "/admin" || req_str == "/update") {
         if (user_password_trimmed == PASSWORD && req_str == "/admin") {
             res->setHeader("Content-Type", "text/html");
-            res->println(FuncReadTemplate("/templates/log_out.html", {}));
+            res->println(FuncReadTemplate("/templates/log_out.html", {{"%LOGGED_IN%", "logout"}}));
         } else {
             next();
         }
     } else {
         res->setStatusCode(404);
         res->setHeader("Content-Type", "text/html");
-        res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", "You need to log in to access this page"}}));
+        res->println(FuncReadTemplate("/templates/admin.html", {{"%LOGGED_IN%", "login"},{"%ERROR%", "You need to log in to access this page"}}));
     }
 }
 
 void handleRoot(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(FuncReadTemplate("/templates/home.html", {{"%TIME%", (String)((int)(millis() / 1000))}}));
+    res->println(FuncReadTemplate("/templates/home.html", {{"%LOGGED_IN%", "logout"}, {"%TIME%", (String)((int)(millis() / 1000))}}));
 }
 
 void handleStyle(HTTPRequest *req, HTTPResponse *res) {
@@ -753,12 +753,12 @@ void handleTerminal(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Connection", "close");
     res->setHeader("Content-Type", "text/html");
 
-    res->println(FuncReadTemplate("/templates/terminal.html", {}));
+    res->println(FuncReadTemplate("/templates/terminal.html", {{"%LOGGED_IN%", "logout"}}));
 };
 
 void handleComputers(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(FuncReadTemplate("/templates/computers.html", {}));
+    res->println(FuncReadTemplate("/templates/computers.html", {{"%LOGGED_IN%", "logout"}}));
 };
 
 WebsocketHandler *SSHHandler::create() {
@@ -800,7 +800,7 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     std::string msg;
     ss << inbuf;
     msg = ss.str();
-    String ssh_msg = msg.c_str();
+    String ssh_msg = msg.c_str() + "\0";
 
     // Send the ssh output to the client
 
@@ -810,6 +810,31 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     /*
     this->send(shh_output_string.c_str(), SEND_TYPE_TEXT);
     shh_output_string = "";
+
+    HERE:
+    void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
+    if (inbuf == nullptr) return;
+
+    // 1. Properly read the streaming characters out of the input buffer
+    std::string msg;
+    int ch;
+    while ((ch = inbuf->sbumpc()) != EOF) {
+        msg.push_back(static_cast<char>(ch));
+    }
+
+    // 2. Convert it safely to an Arduino String (it automatically null-terminates)
+    String ssh_msg = String(msg.c_str());
+
+    // 3. Print and assign
+    Serial.println("ssh cmd received:");
+    Serial.println(ssh_msg);
+    
+    ssh_command = ssh_msg;
+    
+    Serial.println("ssh command processing finished");
+}
+
+
     */
 }
 
@@ -956,7 +981,7 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", ""}}));
+    res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", ""},{"%LOGGED_IN%", "login"}}));
 };
 
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res) {
@@ -1003,7 +1028,7 @@ void handleLogIn(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Set-Cookie", Cookie.c_str());
     res->setHeader("Content-Type", "text/html");
     if (Session == PASSWORD) {
-        res->println(FuncReadTemplate("/templates/log_out.html", {{"%LOGGED_In%", ""}}));
+        res->println(FuncReadTemplate("/templates/log_out.html", {{"%LOGGED_IN%", "login"}}));
     } else {
         res->println(FuncReadTemplate("/templates/computers.html", {{"%ERROR%", "The provided password was incorrect"}}));
     }

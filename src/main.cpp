@@ -1225,11 +1225,7 @@ void handle404(HTTPRequest *req, HTTPResponse *res) {
     // Set the response status
     res->setStatusCode(404);
     res->setStatusText("Not Found");
-
-    // Set content type of the response
     res->setHeader("Content-Type", "text/html");
-
-    // Write a tiny HTML page
     res->println("<!DOCTYPE html>");
     res->println("<html>");
     res->println("<head><title>Not Found</title></head>");

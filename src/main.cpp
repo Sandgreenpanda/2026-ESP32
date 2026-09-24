@@ -496,7 +496,7 @@ String FuncReadTemplate(String path, std::initializer_list<std::pair<String, Str
     return file;
 }
 
-ssh_conn hp_1_session("192.168.1.34", "alext", "Home1918");
+ssh_conn hp_1_session("192.168.1.71", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");

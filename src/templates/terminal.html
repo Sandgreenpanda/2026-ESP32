@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esp32 Website</title>
+    <title>Home server - Sandgreenpanda</title>
     <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css">
     <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
@@ -19,6 +19,11 @@
     </ul>
     <div id="terminal"></div>
     <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
+    <br>
+    <form action="/switchssh0" method="post" target="dummyframe"><input type="submit" value="Switch to HP 1"></form>
+    <form action="/switchssh1" method="post" target="dummyframe"><input type="submit" value="Switch to HP 2"></form>
+    <br>
+    <br>
     <form action="/toggle1" method="post" target="dummyframe"><input type="submit" value="Toggle HP 1"></form>
     <p> </p>
     <button style="background-color: #0ab304;" type="button" id="hp1_reconnect">Reconnect</button>
@@ -27,7 +32,7 @@
     <form action="/scp" method="post" target="dummyframe"><input type="text" id="filepath" name="filepath">File
         path:<input type="submit"></form>
     <form id="fileUploadForm">
-        <input type="text" id="file_path" />
+        Location on Server: /home/alext/<input type="text" id="file_path" />
         File: <input type="file" name="upload" id="fileInput" />
         <input type="submit" id="btn" />
     </form>

@@ -63,9 +63,6 @@ URLCode fp_encoded;
 WiFiMulti wifiMulti;
 SSLCert *cert;
 HTTPSServer *secureServer;
-// List of clients that signed up for sse
-std::vector<httpsserver::HTTPResponse *> sseClients;
-// std::vector<int> sseClients;
 
 const unsigned int configSTACK = 21200;
 
@@ -73,6 +70,7 @@ volatile devState_t devState;
 volatile bool gotIpAddr, gotIp6Addr;
 volatile bool wifiPhyConnected;
 
+String switch_ssh = "";
 String scp_command = "";
 String upload_command = "";
 String ssh_command = "";
@@ -82,11 +80,20 @@ String shh_output_send_temp_old = "";
 String shh_output_send = "";
 String shh_output_send_temp = "";
 
-String PASSWORD = "OYW7]X}7:)[Z2T;l58-P6(P6+{21t0tF"; // This is NOT my password.
-// This is a fallback for if the sd card does not load
-// There is no way to not commit the fallback to github, by nature of it being a fallback
-// I can't initialise it as an empty string, because in the case the SD card does not load,
-// an empty string is not secure.
+String getPassword() {
+    String text = "";
+
+    const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789]X}7:)[Z2T;l58-P6({+";
+    size_t alphabetSize = sizeof(alphabet) - 1;
+    for (size_t i = 0; i < 32; i++) {
+        text += alphabet[esp_random() % alphabetSize];
+    }
+
+    return text;
+};
+
+// Dynamicly generate an inital value for the password in case the sd card fails to load, so the password is not set to ""
+String PASSWORD = getPassword();
 
 // Fan settings
 const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
@@ -112,9 +119,10 @@ void handleToggle3(HTTPRequest *req, HTTPResponse *res);
 void handleToggle4(HTTPRequest *req, HTTPResponse *res);
 void handleToggle5(HTTPRequest *req, HTTPResponse *res);
 void handleToggle6(HTTPRequest *req, HTTPResponse *res);
+void switchSsh0(HTTPRequest *req, HTTPResponse *res);
+void switchSsh1(HTTPRequest *req, HTTPResponse *res);
 void handleFan(HTTPRequest *req, HTTPResponse *res);
 void handleStyle(HTTPRequest *req, HTTPResponse *res);
-void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
 void handleComputers(HTTPRequest *req, HTTPResponse *res);
 void handleAdmin(HTTPRequest *req, HTTPResponse *res);
 void handleLogIn(HTTPRequest *req, HTTPResponse *res);
@@ -124,8 +132,22 @@ void handleUPLOAD(HTTPRequest *req, HTTPResponse *res);
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
 
-// SSH handler class
+// Websocket SSH handler class
 class SSHHandler : public WebsocketHandler {
+  public:
+    // This method is called by the webserver to instantiate a new handler for each
+    // client that connects to the websocket endpoint
+    static WebsocketHandler *create();
+
+    // This method is called when a message arrives
+    void onMessage(WebsocketInputStreambuf *input);
+
+    // Handler function on connection close
+    void onClose();
+};
+
+// Websocket for sending fan speed
+class FanHandler : public WebsocketHandler {
   public:
     // This method is called by the webserver to instantiate a new handler for each
     // client that connects to the websocket endpoint
@@ -140,7 +162,9 @@ class SSHHandler : public WebsocketHandler {
 
 // Simple array to store the active clients:
 SSHHandler *activeClients[MAX_CLIENTS];
+FanHandler *activeClientsFan[MAX_CLIENTS];
 SemaphoreHandle_t clientsMutex = NULL;
+SemaphoreHandle_t clientsMutexFan = NULL;
 
 class ssh_conn {
     // All my code :)
@@ -334,7 +358,7 @@ class ssh_conn {
         ssh_scp scp;
         int rc;
 
-        scp = ssh_scp_new(session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, "/");
+        scp = ssh_scp_new(session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, "/home/alext/");
         if (scp == NULL) {
             Serial.printf("Error allocating scp session: %s\n", ssh_get_error(session));
             return SSH_ERROR;
@@ -486,6 +510,12 @@ class ssh_conn {
     }
 };
 
+std::vector<ssh_conn> ssh_servers = {
+    ssh_conn("192.168.1.71", "alext", "Home1918"),
+    ssh_conn("192.168.1.25", "alext", "Home1918")};
+
+int current_ssh_index = 0;
+
 String FuncReadTemplate(String path, std::initializer_list<std::pair<String, String>> args) {
     String file = SD.open(path, FILE_READ).readString();
 
@@ -496,61 +526,78 @@ String FuncReadTemplate(String path, std::initializer_list<std::pair<String, Str
     return file;
 }
 
-ssh_conn hp_1_session("192.168.1.71", "alext", "Home1918");
+;
 
 int ex_main() {
     Serial.println("Exec main begin");
 
     int lastHandleKeepAlive = millis();
 
-    if (hp_1_session.connect() != NULL) {
-        hp_1_session.conn = true;
+    if (ssh_servers[current_ssh_index].connect() != NULL) {
+        ssh_servers[current_ssh_index].conn = true;
     }
 
     Serial.println("loop begin");
     while (1) {
 
         // Read the ssh data and send it to the websocket clients
-        if (!hp_1_session.conn || hp_1_session.read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
+        if (!ssh_servers[current_ssh_index].conn || ssh_servers[current_ssh_index].read() < 1) { // Returns rbytes, checks for no-bytes-transferred/error
             // If the connection is down, dont read by short circuit evaluation
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
+        if (switch_ssh != "" && ssh_servers[current_ssh_index].conn) {
+            // Disconnect the current ssh session
+            ssh_servers[current_ssh_index].brutal_exception();
+            // Synchronize the connection status
+            ssh_servers[current_ssh_index].conn = false;
 
-        if (ssh_command != "" && hp_1_session.conn) {
+            // Switch primary control over to targeted new computer
+            current_ssh_index = switch_ssh.toInt();
+
+            if (ssh_servers[current_ssh_index].connect() != NULL) {
+                ssh_servers[current_ssh_index].conn = true;
+            } else {
+                ssh_servers[current_ssh_index].conn = false;
+                Serial.println("Disconnected from old server but failed to connect to new server.");
+            };
+
+            // Clear variable to prevent infinite loop
+            switch_ssh = "";
+        } else if (ssh_command != "" && ssh_servers[current_ssh_index].conn) {
             // Write the websocket data to ssh
-            hp_1_session.write(ssh_command);
+            ssh_servers[current_ssh_index].write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
-        } else if (upload_command != "" && hp_1_session.conn) {
-            hp_1_session.scp_write(upload_command);
+        } else if (upload_command != "" && ssh_servers[current_ssh_index].conn) {
+            ssh_servers[current_ssh_index].scp_write(upload_command);
             upload_command = "";
-        } else if (scp_command != "" && hp_1_session.conn) {
-            hp_1_session.scp_read(scp_command);
+        } else if (scp_command != "" && ssh_servers[current_ssh_index].conn) {
+            ssh_servers[current_ssh_index].scp_read(scp_command);
             scp_command = "";
         } else if (hp_1_status_req) {
-            String cmd_output = hp_1_session.exec_cmd("echo alive");
+            String cmd_output = ssh_servers[current_ssh_index].exec_cmd("echo alive");
             cmd_output.trim();
-            hp_1_session.conn = (cmd_output == "alive");
+            ssh_servers[current_ssh_index].conn = (cmd_output == "alive");
             Serial.println(cmd_output);
-            if (!hp_1_session.conn) {
+            if (!ssh_servers[current_ssh_index].conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
-                hp_1_session.brutal_exception();
-                if (hp_1_session.connect() != NULL) {
-                    hp_1_session.conn = true;
+                ssh_servers[current_ssh_index].brutal_exception();
+                if (ssh_servers[current_ssh_index].connect() != NULL) {
+                    ssh_servers[current_ssh_index].conn = true;
                 } else {
-                    hp_1_session.conn = false;
+                    ssh_servers[current_ssh_index].conn = false;
                 }
             }
             hp_1_status_req = false;
         } else {
-            if (millis() - lastHandleKeepAlive >= 10000 && hp_1_session.conn) { // Every 10 seconds
+            if (millis() - lastHandleKeepAlive >= 10000 && ssh_servers[current_ssh_index].conn) { // Every 10 seconds
                 Serial.println("Keep Alive Check");
-                hp_1_session.keep_alive();
+                ssh_servers[current_ssh_index].keep_alive();
                 lastHandleKeepAlive = millis();
             }
         }
     }
-    hp_1_session.conn = true;
-    hp_1_session.disconnect();
+    ssh_servers[current_ssh_index].conn = true;
+    ssh_servers[current_ssh_index].disconnect();
 
     return 0;
 }
@@ -566,26 +613,29 @@ void serverTask(void *params) {
     Serial.println("Creating a new self-signed certificate.");
     Serial.println("This may take up to a minute, so be patient ;-)");
 
-    cert = new SSLCert();
-
     esp_task_wdt_delete(NULL);
 
-    int createCertResult = createSelfSignedCert(
-        *cert,
-        KEYSIZE_2048,
-        "CN=10.47.6.92,O=Sandgreenpanda,C=DE",
-        "20190101000000",
-        "20300101000000");
-
-    esp_task_wdt_add(NULL);
-
-    // Now check if creating that worked
-    if (createCertResult != 0) {
-        Serial.printf("Cerating certificate failed. Error Code = 0x%02X, check SSLCert.hpp for details", createCertResult);
-        while (true)
-            delay(500);
+    fs::File crtFile = SD.open("/crypto/server.crt", FILE_READ);
+    if (!crtFile) {
+        Serial.println("Error: Could not open /crypto/server.crt!");
     }
-    Serial.println("Creating the certificate was successful");
+    String certStr = crtFile.readString();
+    crtFile.close();
+
+    fs::File keyFile = SD.open("/crypto/server.key", FILE_READ);
+    if (!keyFile) {
+        Serial.println("Error: Could not open /crypto/server.key!");
+    }
+    String keyStr = keyFile.readString();
+    keyFile.close();
+
+    cert = new SSLCert(
+        (unsigned char *)certStr.c_str(),
+        certStr.length() + 1,
+        (unsigned char *)keyStr.c_str(),
+        keyStr.length() + 1
+    );
+    esp_task_wdt_add(NULL);
 
     secureServer = new HTTPSServer(cert, 443, MAX_CLIENTS);
 
@@ -599,6 +649,8 @@ void serverTask(void *params) {
     ResourceNode *nodeToggle4 = new ResourceNode("/toggle4", "POST", &handleToggle4);
     ResourceNode *nodeToggle5 = new ResourceNode("/toggle5", "POST", &handleToggle5);
     ResourceNode *nodeToggle6 = new ResourceNode("/toggle6", "POST", &handleToggle6);
+    ResourceNode *nodeSwitchSsh0 = new ResourceNode("/switchssh0", "POST", &switchSsh0);
+    ResourceNode *nodeSwitchSsh1 = new ResourceNode("/switchssh1", "POST", &switchSsh1);
     ResourceNode *nodeAdmin = new ResourceNode("/admin", "GET", &handleAdmin);
     ResourceNode *nodeLogIn = new ResourceNode("/admin", "POST", &handleLogIn);
 
@@ -606,15 +658,19 @@ void serverTask(void *params) {
     ResourceNode *nodeHandleStyle = new ResourceNode("/style.css", "GET", &handleStyle);
     ResourceNode *nodeHandleComputers = new ResourceNode("/computers", "GET", &handleComputers);
 
-    ResourceNode *nodeHandleTerminalUpdate = new ResourceNode("/update", "GET", &handleTerminalUpdate);
     ResourceNode *nodehandleSSHpage = new ResourceNode("/sshpage", "GET", &handleSSHpage);
-    WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
     ResourceNode *nodeSSHStatus1 = new ResourceNode("/SSH1Status", "POST", &handleSSHStatus1);
     ResourceNode *nodeSCP = new ResourceNode("/scp", "POST", &handleSCP);
     ResourceNode *nodeUPLOAD = new ResourceNode("/upload", "POST", &handleUPLOAD);
 
+    // Websockets
+    WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
+    WebsocketNode *websocketFanNode = new WebsocketNode("/webscoketFan", &FanHandler::create);
+    
+
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
+    secureServer->registerNode(websocketFanNode);
     secureServer->registerNode(nodehandleSSHpage);
 
     // Add the root node to the server
@@ -632,6 +688,8 @@ void serverTask(void *params) {
     secureServer->registerNode(nodeToggle4);
     secureServer->registerNode(nodeToggle5);
     secureServer->registerNode(nodeToggle6);
+    secureServer->registerNode(nodeSwitchSsh0);
+    secureServer->registerNode(nodeSwitchSsh1);
     secureServer->registerNode(nodeHandleFan);
     secureServer->registerNode(nodeHandleComputers);
 
@@ -640,7 +698,6 @@ void serverTask(void *params) {
 
     secureServer->registerNode(nodeHandleStyle);
 
-    secureServer->registerNode(nodeHandleTerminalUpdate);
     secureServer->registerNode(nodeUPLOAD);
 
     secureServer->addMiddleware(&middlewareAuth);
@@ -695,8 +752,12 @@ void setup() {
 
     Serial.begin(115200);
     clientsMutex = xSemaphoreCreateMutex();
+    clientsMutexFan = xSemaphoreCreateMutex();
     if (clientsMutex == NULL) {
         Serial.println("Error: Failed to create clientsMutex!");
+    }
+    if (clientsMutexFan == NULL) {
+        Serial.println("Error: Failed to create clientsMutexFan!");
     }
 
     sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
@@ -735,6 +796,17 @@ void loop() {
         tachPulseCount = 0;
 
         lastTachTime = millis();
+
+        if (clientsMutexFan != NULL && xSemaphoreTake(clientsMutexFan, pdMS_TO_TICKS(100)) == pdTRUE) {
+                    for (int i = 0; i < MAX_CLIENTS; i++) {
+                        if (activeClientsFan[i] != nullptr) {
+                            activeClientsFan[i]->send(String(rpm).c_str(), WebsocketHandler::SEND_TYPE_TEXT);
+                        }
+                    }
+                    xSemaphoreGive(clientsMutexFan);
+                } else {
+                    Serial.println("Could not acquire lock on fan rpm");
+                }
     };
 }
 
@@ -803,6 +875,42 @@ void handleComputers(HTTPRequest *req, HTTPResponse *res) {
     res->println(FuncReadTemplate("/templates/computers.html", {{"%LOGGED_IN%", "logout"}}));
 };
 
+WebsocketHandler *FanHandler::create() {
+    Serial.println("Creating new chat client!");
+    FanHandler *handler = new FanHandler();
+    if (clientsMutexFan != NULL && xSemaphoreTake(clientsMutexFan, pdMS_TO_TICKS(100)) == pdTRUE) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClientsFan[i] == nullptr) {
+                activeClientsFan[i] = handler;
+                break;
+            }
+        }
+        xSemaphoreGive(clientsMutexFan);
+    } else {
+        Serial.println("Unable to take variable lock");
+    }
+    return handler;
+}
+
+// When the websocket is closing, we remove the client from the array
+void FanHandler::onClose() {
+    if (clientsMutexFan != NULL && xSemaphoreTake(clientsMutexFan, pdMS_TO_TICKS(100)) == pdTRUE) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (activeClientsFan[i] == this) {
+                activeClientsFan[i] = nullptr;
+            }
+        }
+        xSemaphoreGive(clientsMutexFan);
+    } else {
+        Serial.println("Unable to take variable lock");
+    }
+}
+
+void FanHandler::onMessage(WebsocketInputStreambuf *inbuf) {
+    return;
+    // Fan request data is only sent over websocket. This may change in the future.
+}
+
 WebsocketHandler *SSHHandler::create() {
     Serial.println("Creating new chat client!");
     SSHHandler *handler = new SSHHandler();
@@ -852,40 +960,6 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     Serial.println(ssh_msg);
 
     ssh_command = ssh_msg;
-}
-
-void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {
-    // sse headers
-
-    //  res->setChunkedTransferMode();
-    res->setHeader("Content-Type", "text/event-stream");
-    res->setHeader("Cache-Control", "no-cache");
-    res->setHeader("Connection", "keep-alive");
-
-    // This code adds res to the list of clients that get sse updates
-    res->print(""); // Force submit the headers
-
-    // int rawSocketFd = req->getClientStartData()->_socket;
-    sseClients.push_back(res); // res is a pointer.
-
-    // res->Save(); // Pointers no longer disappear
-    //  Allows for SSE
-
-    // A client is removed upon a bad res->print in the ssh loop
-
-    // res->flush();
-
-    // This code was bad and blocked the whole thread
-    /*
-    while (1) {
-        if (shh_output_send != "") {
-            // res->write((uint8_t *)shh_output_send.c_str(), shh_output_send.length());
-            res->print(shh_output_send);
-            shh_output_send = "";
-        }
-        delay(10); // Let the esp complete other tasks in this thread
-    }
-    */
 }
 
 void handleTerminalPost(HTTPRequest *req, HTTPResponse *res) {
@@ -1040,8 +1114,18 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
     while (hp_1_status_req) {
         delay(1);
     }
-    res->println(hp_1_session.conn);
+    res->println(ssh_servers[current_ssh_index].conn);
 }
+
+void switchSsh0(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/html");
+    switch_ssh = "0";
+};
+
+void switchSsh1(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/html");
+    switch_ssh = "1";
+};
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");

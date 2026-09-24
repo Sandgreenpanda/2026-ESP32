@@ -25,7 +25,7 @@ echo "Starting transfer..."
 refreshsd
 sudo mkdir -p "/run/media/alext/esp storage"
 sleep 2
-sudo mount -o uid=alext,gid=alext -t vfat /dev/mmcblk0p1 "/run/media/alext/esp storage"
+sudo mount -o uid=alext,gid=alext -t exfat /dev/mmcblk0p1 "/run/media/alext/esp storage"
 sudo cp -r src/templates "/run/media/alext/esp storage"
 sudo cp -r src/static "/run/media/alext/esp storage"
 sudo cp -r src/crypto "/run/media/alext/esp storage"

@@ -485,12 +485,14 @@ class ssh_conn {
                 return rc;
             }
 
-            Serial.write((const uint8_t *)buffer, rc);
             targetFile.write((const uint8_t *)buffer, rc);
+            Serial.write((const uint8_t *)buffer, rc);
             remaining -= rc;
         }
 
         targetFile.flush();
+
+        Serial.printf("SD Write Finished. File size on disk: %d bytes\n", targetFile.size());
         targetFile.close();
 
         Serial.printf("Done\n");
@@ -928,7 +930,7 @@ WebsocketHandler *FanHandler::create() {
         Serial.println("Unable to take variable lock");
     }
     Serial.println("Websocket finished");
-    return handler; 
+    return handler;
 }
 
 // When the websocket is closing, we remove the client from the array
@@ -1060,25 +1062,34 @@ void handleSCP(HTTPRequest *req, HTTPResponse *res) {
     fp_encoded.urlcode = filepath;
     fp_encoded.urldecode();
     String fp = fp_encoded.strcode;
-    scp_command = fp.substring(9, filepath.length());
-    Serial.println(scp_command);
+    String plain_file_path = fp.substring(1, fp.length() - 1);
+    // Writing the scp_command has to be the last thing before loop to prevent race condition
+    scp_command = plain_file_path;
 
     while (scp_command != "") {
         delay(1);
     }
 
+    // Make sure file is written correctly
+    delay(100);
+
     String sdPath = "/downloads/file";
 
-    fs::File file = SD.open(sdPath, FILE_READ);
+    byte buffer2[256];
 
-    String fntemp = fp.substring(9, filepath.length());
-    String filename = "attachment; filename=\"" + fntemp.substring(fntemp.lastIndexOf('/') + 1) + "\"";
+    fs::File file = SD.open(sdPath, FILE_READ);
+    file.seek(0);
+
+    String filename = "attachment; filename=\"" + plain_file_path.substring(plain_file_path.lastIndexOf('/') + 1) + "\"";
 
     res->setHeader("Content-Disposition", filename.c_str());
+    res->setHeader("Content-Length", String(file.size()).c_str());
 
     while (file.available()) {
-        size_t bytesRead = file.read(buffer, sizeof(buffer));
-        res->write(buffer, bytesRead);
+        size_t bytesRead = file.read(buffer2, sizeof(buffer2));
+        if (bytesRead > 0) {
+            res->write(buffer2, bytesRead);
+        }
     }
 
     file.close();

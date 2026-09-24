@@ -29,9 +29,10 @@
     <button style="background-color: #0ab304;" type="button" id="hp1_reconnect">Reconnect</button>
 
     <br>
-    <form action="/scp" method="post" target="dummyframe" id="download_form"><input type="text" id="filepath"
-            name="filepath">File
-        path:<input type="submit" id="downloads_btn" value="Download"></form>
+    <form action="/scp" method="post" target="dummyframe" id="download_form">
+        <input type="text" id="filepath" name="filepath">File
+        path:<input type="submit" id="download_btn" value="Download">
+    </form>
     <form id="fileUploadForm">
         Location on Server: /home/alext/<input type="text" id="file_path" />
         File: <input type="file" name="upload" id="fileInput" />
@@ -42,27 +43,32 @@
         const form = document.getElementById("fileUploadForm");
         const fileInput = document.getElementById("fileInput");
         const filePath = document.getElementById("file_path");
+        const download_path = document.getElementById("filepath");
         const download_form = document.getElementById("download_form");
         const upload_btn = document.getElementById("upload_btn");
         const download_btn = document.getElementById("download_btn");
 
-        const dummyFrame = document.getElementById("dummyframe");
 
-        let isSubmitting = false;
-
-        form.addEventListener("submit", () => {
+        download_form.addEventListener("submit", () => {
+            event.preventDefault();
             download_btn.style.filter = "brightness(0.5)";
-            download_btn.disabled = true;
 
-            isSubmitting = true;
-        });
-
-        dummyFrame.addEventListener("load", () => {
-            if (isSubmitting) {
-                download_btn.style.filter = "brightness(1)";
-                download_btn.disabled = false;
-                isSubmitting = false;
-            }
+            fetch("/scp", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(download_path.value)
+            }).then(res => res.blob())
+                .then(blob => {
+                    download_btn.style.filter = 'brightness(1)';
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'periodic_table.txt';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                });
         });
 
         form.addEventListener("submit", async (event) => {

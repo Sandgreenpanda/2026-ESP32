@@ -40,11 +40,14 @@
 #define PWM_FAN_1 23
 #define TACH_FAN_1 22
 
-// Max ssh clients. So fat this is for ne computer, so I may do different objs later.
+// Max ssh clients. So fat this is for 6 computers, so I may do different objs later.
 // For now four is more than enough
 #define MAX_CLIENTS 6
 
 #define SSH_SINGLE_EXEC_TIMEOUT 10000 // 10s
+
+// The HTTPS Server comes in a separate namespace. For easier use, include it here.
+using namespace httpsserver;
 
 boolean hp_1_status_req = false;
 boolean hp_2_status_req = false;
@@ -56,53 +59,10 @@ boolean acer_2_status_req = false;
 SPIClass sdSPI(VSPI);
 
 keyValueDatabase<String, String> Session_dict;
-
-// The HTTPS Server comes in a separate namespace. For easier use, include it here.
-using namespace httpsserver;
-
 URLCode fp_encoded;
-
 WiFiMulti wifiMulti;
-
-// Fan settings
-const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
-const int PWM_RESOLUTION = 8;
-volatile unsigned long tachPulseCount = 0;
-unsigned long lastTachTime = 0;
-const unsigned long TACH_SAMPLE_TIME = 1000; // Sample period in milliseconds
-
-// Interrupt service routine for tachometer
-void IRAM_ATTR tachISR() {
-    tachPulseCount = tachPulseCount + 1;
-}
-
 SSLCert *cert;
 HTTPSServer *secureServer;
-
-// Declare some handler functions for the various URLs on the server
-void handleRoot(HTTPRequest *req, HTTPResponse *res);
-void handle404(HTTPRequest *req, HTTPResponse *res);
-void handleTerminal(HTTPRequest *req, HTTPResponse *res);
-void handleTerminalPost(HTTPRequest *req, HTTPResponse *res);
-void handleToggle1(HTTPRequest *req, HTTPResponse *res);
-void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res);
-void handleToggle2(HTTPRequest *req, HTTPResponse *res);
-void handleToggle3(HTTPRequest *req, HTTPResponse *res);
-void handleToggle4(HTTPRequest *req, HTTPResponse *res);
-void handleToggle5(HTTPRequest *req, HTTPResponse *res);
-void handleToggle6(HTTPRequest *req, HTTPResponse *res);
-void handleFan(HTTPRequest *req, HTTPResponse *res);
-void handleStyle(HTTPRequest *req, HTTPResponse *res);
-void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
-void handleComputers(HTTPRequest *req, HTTPResponse *res);
-void handleAdmin(HTTPRequest *req, HTTPResponse *res);
-void handleLogIn(HTTPRequest *req, HTTPResponse *res);
-void handleSSHpage(HTTPRequest *req, HTTPResponse *res);
-void handleSCP(HTTPRequest *req, HTTPResponse *res);
-void handleUPLOAD(HTTPRequest *req, HTTPResponse *res);
-
-void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
-
 // List of clients that signed up for sse
 std::vector<httpsserver::HTTPResponse *> sseClients;
 // std::vector<int> sseClients;
@@ -127,6 +87,42 @@ String PASSWORD = "OYW7]X}7:)[Z2T;l58-P6(P6+{21t0tF"; // This is NOT my password
 // There is no way to not commit the fallback to github, by nature of it being a fallback
 // I can't initialise it as an empty string, because in the case the SD card does not load,
 // an empty string is not secure.
+
+// Fan settings
+const int PWM_FREQ = 25000; // 25 kHz frequency for computer fans
+const int PWM_RESOLUTION = 8;
+volatile unsigned long tachPulseCount = 0;
+unsigned long lastTachTime = 0;
+const unsigned long TACH_SAMPLE_TIME = 1000; // Sample period in milliseconds
+
+// Interrupt service routine for tachometer
+void IRAM_ATTR tachISR() {
+    tachPulseCount = tachPulseCount + 1;
+}
+
+// Declare some handler functions for the various URLs on the server
+void handleRoot(HTTPRequest *req, HTTPResponse *res);
+void handle404(HTTPRequest *req, HTTPResponse *res);
+void handleTerminal(HTTPRequest *req, HTTPResponse *res);
+void handleTerminalPost(HTTPRequest *req, HTTPResponse *res);
+void handleToggle1(HTTPRequest *req, HTTPResponse *res);
+void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res);
+void handleToggle2(HTTPRequest *req, HTTPResponse *res);
+void handleToggle3(HTTPRequest *req, HTTPResponse *res);
+void handleToggle4(HTTPRequest *req, HTTPResponse *res);
+void handleToggle5(HTTPRequest *req, HTTPResponse *res);
+void handleToggle6(HTTPRequest *req, HTTPResponse *res);
+void handleFan(HTTPRequest *req, HTTPResponse *res);
+void handleStyle(HTTPRequest *req, HTTPResponse *res);
+void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res);
+void handleComputers(HTTPRequest *req, HTTPResponse *res);
+void handleAdmin(HTTPRequest *req, HTTPResponse *res);
+void handleLogIn(HTTPRequest *req, HTTPResponse *res);
+void handleSSHpage(HTTPRequest *req, HTTPResponse *res);
+void handleSCP(HTTPRequest *req, HTTPResponse *res);
+void handleUPLOAD(HTTPRequest *req, HTTPResponse *res);
+
+void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
 
 // SSH handler class
 class SSHHandler : public WebsocketHandler {
@@ -188,7 +184,6 @@ class ssh_conn {
         int rc;
         libssh_begin();
         session = connect_ssh(password, host, user, 0);
-        // session = connect_ssh("password", "test.rebex.net", "demo", 0);
 
         if (session == NULL) {
             Serial.println("FAILURE! finalizeing...");
@@ -241,8 +236,6 @@ class ssh_conn {
                 if (clientsMutex != NULL && xSemaphoreTake(clientsMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
                     for (int i = 0; i < MAX_CLIENTS; i++) {
                         if (activeClients[i] != nullptr) {
-                            // Serial.print("THIS +");
-                            //  Serial.println(msg.c_str());
                             activeClients[i]->send(msg, WebsocketHandler::SEND_TYPE_TEXT);
                         }
                     }
@@ -353,8 +346,6 @@ class ssh_conn {
             ssh_scp_free(scp);
             return rc;
         }
-
-
 
         char path_copy[256];
         strncpy(path_copy, filepath.substring(0, filepath.lastIndexOf('/')).c_str(), sizeof(path_copy));
@@ -505,22 +496,12 @@ String FuncReadTemplate(String path, std::initializer_list<std::pair<String, Str
     return file;
 }
 
-ssh_conn hp_1_session("10.47.3.74", "alext", "Home1918");
+ssh_conn hp_1_session("192.168.1.34", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
-    ssh_session session = NULL;
-    ssh_channel channel = NULL;
-
-    int nbytes;
-    int nwritten;
-
-    int writeBufferSize;
 
     int lastHandleKeepAlive = millis();
-
-    // Temporarily using test server
-    // session = connect_ssh("Home1918", "10.47.1.39", "alext", 0);
 
     if (hp_1_session.connect() != NULL) {
         hp_1_session.conn = true;
@@ -552,9 +533,6 @@ int ex_main() {
             Serial.println(cmd_output);
             if (!hp_1_session.conn) {
                 Serial.println("HP1 Disconnect! Reconnecting...");
-                // TODO: Reconnect logic for turn on
-
-                // hp_1_session.connect();
                 hp_1_session.brutal_exception();
                 if (hp_1_session.connect() != NULL) {
                     hp_1_session.conn = true;
@@ -672,19 +650,14 @@ void serverTask(void *params) {
     if (secureServer->isRunning()) {
         Serial.println("Server ready.");
 
-        // "loop()" function of the separate task
         while (true) {
-            // This call will let the server do its work
             secureServer->loop();
-
-            // Other code would go here...
             delay(1);
         }
     }
 }
 
 void setup() {
-
     digitalWrite(LAPTOP_HP_1, LOW);
     digitalWrite(LAPTOP_HP_2, LOW);
     digitalWrite(LAPTOP_HP_3, LOW);
@@ -713,15 +686,10 @@ void setup() {
 
     WiFi.disconnect(true);
 
-    // Max wifi strength
-    // WiFi.setTxPower(WIFI_POWER_19_5dBm);
     WiFi.setSleep(false);
 
     wifiMulti.addAP("WC Devices", "0jebr9yrxh");
     wifiMulti.addAP("SPARK-UMRK2N", "NKUWEW7ZZV");
-
-    // ESP32 is 2.4GHZ only
-    // wifiMulti.addAP("SPARK-UMRK2N-5G", "NKUWEW7ZZV");
 
     devState = STATE_NEW;
 
@@ -754,40 +722,20 @@ void setup() {
 
     xTaskCreatePinnedToCore(controlTask, "ctl", configSTACK, NULL, (tskIDLE_PRIORITY + 3), NULL, 0);
 
-    // TEMP
-    //  wifiMulti.run();
-
     // Make the server async and give it more ram
     xTaskCreatePinnedToCore(serverTask, "https443", 10240, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
 }
 
 void loop() {
-    //   secureServer->loop();
     delay(1);
     if (millis() - lastTachTime >= TACH_SAMPLE_TIME) {
         // Calculate RPM (2 pulses per revolution for most fans)
         unsigned long rpm = (tachPulseCount * 60000) / (TACH_SAMPLE_TIME * 2);
         Serial.println(rpm);
         tachPulseCount = 0;
-        //  Serial.printf("[CLIENT 1 ACTIVE] Free Heap: %d | Max Contiguous Block: %d\n",
-        //              ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+
         lastTachTime = millis();
-
-        Serial.printf("Total Heap: %d bytes\n", ESP.getHeapSize());
-        Serial.printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
-        Serial.printf("Used Heap: %d bytes\n", ESP.getHeapSize() - ESP.getFreeHeap());
-
-        // Serial.println("CORE:");
-        // Serial.println(xPortGetCoreID());
     };
-    // Print CPU temps
-    /*
-    if (ssh_command == "") {
-        Serial.println(shh_output_string);
-        shh_output_string = "";
-        ssh_command = "sensors | grep -E \"Core [0-9]\" | awk \'{print $3}\'";
-    };
-    */
 }
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next) {
@@ -887,49 +835,23 @@ void SSHHandler::onClose() {
 }
 
 void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
+    if (inbuf == nullptr)
+        return;
     // Get the input message
     // Dont know how this works, but I got it from the default websocket chat example
     // Might figure it out later
-    std::ostringstream ss;
-    std::string msg;
-    ss << inbuf;
-    msg = ss.str();
-    String ssh_msg = msg.c_str();
-
-    // Send the ssh output to the client
-
-    Serial.println(ssh_msg);
-    ssh_command = ssh_msg;
-
-    /*
-    this->send(shh_output_string.c_str(), SEND_TYPE_TEXT);
-    shh_output_string = "";
-
-    HERE:
-    void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
-    if (inbuf == nullptr) return;
-
-    // 1. Properly read the streaming characters out of the input buffer
     std::string msg;
     int ch;
     while ((ch = inbuf->sbumpc()) != EOF) {
         msg.push_back(static_cast<char>(ch));
     }
 
-    // 2. Convert it safely to an Arduino String (it automatically null-terminates)
     String ssh_msg = String(msg.c_str());
 
-    // 3. Print and assign
     Serial.println("ssh cmd received:");
     Serial.println(ssh_msg);
 
     ssh_command = ssh_msg;
-
-    Serial.println("ssh command processing finished");
-}
-
-
-    */
 }
 
 void handleTerminalUpdate(HTTPRequest *req, HTTPResponse *res) {

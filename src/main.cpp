@@ -42,7 +42,7 @@
 
 // Max ssh clients. So fat this is for 6 computers, so I may do different objs later.
 // For now four is more than enough
-#define MAX_CLIENTS 6
+#define MAX_CLIENTS 10
 
 #define SSH_SINGLE_EXEC_TIMEOUT 10000 // 10s
 
@@ -662,7 +662,7 @@ void serverTask(void *params) {
 
     // Websockets
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
-    WebsocketNode *websocketFanNode = new WebsocketNode("/webscoketFan", &FanHandler::create);
+    WebsocketNode *websocketFanNode = new WebsocketNode("/websocketFan", &FanHandler::create);
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -837,11 +837,15 @@ void loop() {
             xSemaphoreGive(clientsMutexFan);
         } else {
             Serial.println("Could not acquire lock on fan rpm");
+            xSemaphoreGive(clientsMutexFan);
         }
+        // Yield
+        delay(3);
     };
 }
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next) {
+    Serial.println("MIDDLEWARE HAS STARTED!");
     String user_password_raw = req->getHeader("Cookie").c_str();
     String req_str = req->getRequestString().c_str();
     Serial.println(req_str);
@@ -911,6 +915,9 @@ WebsocketHandler *FanHandler::create() {
     FanHandler *handler = new FanHandler();
     if (clientsMutexFan != NULL && xSemaphoreTake(clientsMutexFan, pdMS_TO_TICKS(100)) == pdTRUE) {
         for (int i = 0; i < MAX_CLIENTS; i++) {
+            // Yield, to prevent being stuck in a loop
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+
             if (activeClientsFan[i] == nullptr) {
                 activeClientsFan[i] = handler;
                 break;
@@ -920,7 +927,8 @@ WebsocketHandler *FanHandler::create() {
     } else {
         Serial.println("Unable to take variable lock");
     }
-    return handler;
+    Serial.println("Websocket finished");
+    return handler; 
 }
 
 // When the websocket is closing, we remove the client from the array
@@ -1032,9 +1040,11 @@ void handleFan(HTTPRequest *req, HTTPResponse *res) {
         size_t s = req->readBytes(buffer, 256);
         fanSpeedInput += String(buffer, s);
     }
+    Serial.println("Changing fan speed");
     ledcWrite(0, fanSpeedInput.substring(1, fanSpeedInput.length() - 1).toInt());
     // ledcWrite(0, fanSpeedInput.substring(6).toInt()); // Substring cuts off: speed=
     // Serial.println(fanSpeedInput.substring(6).toInt());
+    res->println("OK");
 }
 
 void handleSCP(HTTPRequest *req, HTTPResponse *res) {

@@ -40,12 +40,13 @@
         fan.addEventListener("change", function (event) {
             fetch("/fan", {
                 method: "POST",
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(fan.value),
             });
         });
 
 
-        const socket = new WebSocket(`wss://${window.location.hostname}/webscoketFan`);
+        const socket = new WebSocket(`wss://${window.location.hostname}/websocketFan`);
 
         socket.onopen = function (event) {
             alert('You are Connected to WebSocket Fan Server');

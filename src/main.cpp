@@ -510,9 +510,7 @@ class ssh_conn {
     }
 };
 
-std::vector<ssh_conn> ssh_servers = {
-    ssh_conn("192.168.1.71", "alext", "Home1918"),
-    ssh_conn("192.168.1.25", "alext", "Home1918")};
+std::vector<ssh_conn> ssh_servers = {};
 
 int current_ssh_index = 0;
 
@@ -633,8 +631,7 @@ void serverTask(void *params) {
         (unsigned char *)certStr.c_str(),
         certStr.length() + 1,
         (unsigned char *)keyStr.c_str(),
-        keyStr.length() + 1
-    );
+        keyStr.length() + 1);
     esp_task_wdt_add(NULL);
 
     secureServer = new HTTPSServer(cert, 443, MAX_CLIENTS);
@@ -666,7 +663,6 @@ void serverTask(void *params) {
     // Websockets
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
     WebsocketNode *websocketFanNode = new WebsocketNode("/webscoketFan", &FanHandler::create);
-    
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -773,6 +769,41 @@ void setup() {
     // Real password is initialed from the SD
     PASSWORD = SD.open("/crypto/password.txt", FILE_READ).readString();
 
+    if (!SD.exists("/data/ssh_settings.csv")) {
+        Serial.println("Error: /data/ssh_settings.csv not found!");
+    }
+
+    fs::File file = SD.open("/data/ssh_settings.csv", FILE_READ);
+    if (!file) {
+        Serial.println("Failed to open /data/ssh_settings.csv");
+    }
+
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0)
+            continue;
+
+        int firstComma = line.indexOf(',');
+        int secondComma = line.indexOf(',', firstComma + 1);
+
+        String ip = line.substring(0, firstComma);
+        String user = line.substring(firstComma + 1, secondComma);
+        String pass = line.substring(secondComma + 1);
+
+        ip.trim();
+        user.trim();
+        pass.trim();
+
+        char *host_ptr = const_cast<char *>(strdup(ip.c_str()));
+        char *user_ptr = const_cast<char *>(strdup(user.c_str()));
+        char *pass_ptr = const_cast<char *>(strdup(pass.c_str()));
+
+        ssh_servers.push_back(ssh_conn(host_ptr, user_ptr, pass_ptr));
+    }
+
+    file.close();
+
     // Initialise the custom wifi event handler, which allows wait_for_wifi_exec to know when the ipv4 and v6 addresses have been set.
     esp_netif_init();
     esp_event_loop_create_default();
@@ -798,15 +829,15 @@ void loop() {
         lastTachTime = millis();
 
         if (clientsMutexFan != NULL && xSemaphoreTake(clientsMutexFan, pdMS_TO_TICKS(100)) == pdTRUE) {
-                    for (int i = 0; i < MAX_CLIENTS; i++) {
-                        if (activeClientsFan[i] != nullptr) {
-                            activeClientsFan[i]->send(String(rpm).c_str(), WebsocketHandler::SEND_TYPE_TEXT);
-                        }
-                    }
-                    xSemaphoreGive(clientsMutexFan);
-                } else {
-                    Serial.println("Could not acquire lock on fan rpm");
+            for (int i = 0; i < MAX_CLIENTS; i++) {
+                if (activeClientsFan[i] != nullptr) {
+                    activeClientsFan[i]->send(String(rpm).c_str(), WebsocketHandler::SEND_TYPE_TEXT);
                 }
+            }
+            xSemaphoreGive(clientsMutexFan);
+        } else {
+            Serial.println("Could not acquire lock on fan rpm");
+        }
     };
 }
 
@@ -1068,6 +1099,10 @@ void handleUPLOAD(HTTPRequest *req, HTTPResponse *res) {
     targetFile.close();
 
     upload_command = path;
+    // Wait until the file has ACTUALLY UPLOADED before returning
+    while (upload_command != "") {
+        delay(1);
+    }
 };
 
 // TODO: Update this to use one route

@@ -7,5 +7,3 @@
 .pio/*
 !.pio/libdeps/
 .pio/libdeps/*
-!.pio/libdeps/esp32doit-devkit-v1/
-.pio/libdeps/esp32doit-devkit-v1/KeyValueDatabase

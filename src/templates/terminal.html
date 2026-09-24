@@ -24,9 +24,38 @@
     <button style="background-color: #0ab304;" type="button" id="hp1_reconnect">Reconnect</button>
 
     <br>
-    <form action="/scp" method="post" target="dummyframe"><input type="text" id="filepath" name="filepath">File path:<input type="submit"></form>
+    <form action="/scp" method="post" target="dummyframe"><input type="text" id="filepath" name="filepath">File
+        path:<input type="submit"></form>
+    <form id="fileUploadForm">
+        <input type="text" id="file_path" />
+        File: <input type="file" name="upload" id="fileInput" />
+        <input type="submit" id="btn" />
+    </form>
 
     <script>
+        const form = document.getElementById("fileUploadForm");
+        const fileInput = document.getElementById("fileInput");
+        const filePath = document.getElementById("file_path");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            if (!fileInput.files.length) return;
+
+            const file = fileInput.files[0];
+
+            await fetch("/upload", {
+                method: "POST",
+                headers: {
+                    "path": filePath.value,
+                    "Content-Type": "application/octet-stream"
+                },
+                body: file
+            });
+
+        });
+
+
         const hp1_reconnect = document.getElementById("hp1_reconnect");
         hp1_reconnect.addEventListener("click", function (event) {
             hp1_reconnect.style.filter = 'brightness(0.5)';

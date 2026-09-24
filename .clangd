@@ -9,7 +9,17 @@ CompileFlags:
     "-I/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/12.2.0",
     "-I/home/alext/.platformio/packages/toolchain-xtensa-esp32/xtensa-esp32-elf/include/c++/12.2.0/xtensa-esp32-elf",
     "-D__XTENSA__=1",
-    "-D_GNU_SOURCE"
+    "-D_GNU_SOURCE",
+    "-I/home/alext/Documents/PlatformIO/Projects/Esp32-DIGI/.pio/libdeps/esp32doit-devkit-v1/URLCode/src",
+    "-I/home/alext/Documents/PlatformIO/Projects/Esp32-DIGI/.pio/libdeps/esp32doit-devkit-v1/KeyValueDatabase",
+    "-I/home/alext/Documents/PlatformIO/Projects/Esp32-DIGI/.pio/libdeps/esp32doit-devkit-v1/KeyValueDatabase/src",
+    "-I/home/alext/Documents/PlatformIO/Projects/Esp32-DIGI/.pio/libdeps/esp32doit-devkit-v1/LightweightSTL/src",
+    "-I/home/alext/Documents/PlatformIO/Projects/Esp32-DIGI/.pio/libdeps/esp32doit-devkit-v1/ThreadSafeFS/src",
+    "-Iinclude",
+    "-Wno-writable-strings",
+    "-Wno-unused-variable",
+    "-Wno-unknown-pragmas"
+    
   ]
   Remove: [
     "-mlongcalls",

@@ -99,6 +99,7 @@ void handleAdmin(HTTPRequest *req, HTTPResponse *res);
 void handleLogIn(HTTPRequest *req, HTTPResponse *res);
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res);
 void handleSCP(HTTPRequest *req, HTTPResponse *res);
+void handleUPLOAD(HTTPRequest *req, HTTPResponse *res);
 
 void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> next);
 
@@ -113,7 +114,7 @@ volatile bool gotIpAddr, gotIp6Addr;
 volatile bool wifiPhyConnected;
 
 String scp_command = "";
-
+String upload_command = "";
 String ssh_command = "";
 String shh_output_string = "";
 String shh_output_send_temp_old = "";
@@ -334,6 +335,78 @@ class ssh_conn {
         }
     }
 
+    // Ignore deprecated warnings
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    int scp_write(String filepath) {
+        ssh_scp scp;
+        int rc;
+
+        scp = ssh_scp_new(session, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, "/");
+        if (scp == NULL) {
+            Serial.printf("Error allocating scp session: %s\n", ssh_get_error(session));
+            return SSH_ERROR;
+        }
+
+        rc = ssh_scp_init(scp);
+        if (rc != SSH_OK) {
+            Serial.printf("Error initializing scp session: %s\n", ssh_get_error(session));
+            ssh_scp_free(scp);
+            return rc;
+        }
+
+
+
+        char path_copy[256];
+        strncpy(path_copy, filepath.substring(0, filepath.lastIndexOf('/')).c_str(), sizeof(path_copy));
+        path_copy[sizeof(path_copy) - 1] = '\0';
+
+        char *token = strtok(path_copy, "/\\");
+
+        // cd and mkdir to any depth. Each iteration is one mkdir & cd
+        while (token != NULL) {
+            if (strlen(token) > 0) {
+                Serial.println(token);
+                int rc = ssh_scp_push_directory(scp, token, S_IRWXU);
+                if (rc != SSH_OK) {
+                    Serial.printf("SCP Error [rc=%d]: %s\n", rc, ssh_get_error(session));
+                    ssh_scp_close(scp);
+                    ssh_scp_free(scp);
+                    return rc;
+                }
+            }
+            token = strtok(NULL, "/\\");
+        }
+
+        String sdPath = "/downloads/upload";
+        String name = filepath.substring(filepath.lastIndexOf('/') + 1);
+        fs::File file = SD.open(sdPath, FILE_READ);
+        rc = ssh_scp_push_file(scp, name.c_str(), file.size(), S_IRUSR | S_IWUSR);
+        if (rc != SSH_OK) {
+            ssh_scp_close(scp);
+            ssh_scp_free(scp);
+            return rc;
+        }
+
+        uint8_t buffer[512];
+
+        while (file.available()) {
+            size_t bytes_read = file.read(buffer, sizeof(buffer));
+
+            if (bytes_read > 0) {
+                rc = ssh_scp_write(scp, buffer, bytes_read);
+                if (rc != SSH_OK) {
+                    Serial.printf("Write chunk failed: %s\n", ssh_get_error(session));
+                    break;
+                }
+            }
+        }
+
+        file.close();
+        ssh_scp_close(scp);
+        ssh_scp_free(scp);
+        return SSH_OK;
+    }
+
 // Ignore deprecated warnings
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     int scp_read(String filepath) {
@@ -359,7 +432,7 @@ class ssh_conn {
 
         int mode;
         size_t size;
-        char *filename, *buffer;
+        char *filename;
 
         rc = ssh_scp_pull_request(scp);
         if (rc != SSH_SCP_REQUEST_NEWFILE) {
@@ -373,31 +446,48 @@ class ssh_conn {
         Serial.printf("Receiving file %s, size %d, permissions 0%o\n", filename, size, mode);
         free(filename);
 
-        // Memaloc... c things...
-        buffer = static_cast<char *>(malloc(size));
-
         ssh_scp_accept_request(scp);
-        rc = ssh_scp_read(scp, buffer, size);
-        if (rc == SSH_ERROR) {
-            Serial.printf("Error receiving file data: %s\n", ssh_get_error(session));
-            free(buffer);
-            return rc;
+
+        char buffer[1024];
+        size_t remaining = size;
+
+        String Download_path = "/downloads/file";
+
+        fs::File targetFile = SD.open(Download_path, FILE_WRITE);
+        if (!targetFile) {
+            Serial.println("Failed to open file on SD for writing");
+            return SSH_ERROR;
         }
+
+        while (remaining > 0) {
+            size_t to_read = (remaining < sizeof(buffer)) ? remaining : sizeof(buffer);
+            rc = ssh_scp_read(scp, buffer, to_read);
+            if (rc == SSH_ERROR) {
+                Serial.printf("Error receiving file data: %s\n", ssh_get_error(session));
+                targetFile.close();
+                ssh_scp_close(scp);
+                ssh_scp_free(scp);
+                return rc;
+            }
+
+            Serial.write((const uint8_t *)buffer, rc);
+            targetFile.write((const uint8_t *)buffer, rc);
+            remaining -= rc;
+        }
+
+        targetFile.flush();
+        targetFile.close();
+
         Serial.printf("Done\n");
-
-        Serial.write((const uint8_t *)buffer, size);
-
         Serial.println();
-
-        free(buffer);
 
         rc = ssh_scp_pull_request(scp);
         if (rc != SSH_SCP_REQUEST_EOF) {
             Serial.printf("Unexpected request: %s\n", ssh_get_error(session));
+            ssh_scp_close(scp);
+            ssh_scp_free(scp);
             return SSH_ERROR;
         }
-
-        return SSH_OK;
 
         ssh_scp_close(scp);
         ssh_scp_free(scp);
@@ -415,7 +505,7 @@ String FuncReadTemplate(String path, std::initializer_list<std::pair<String, Str
     return file;
 }
 
-ssh_conn hp_1_session("10.47.7.41", "alext", "Home1918");
+ssh_conn hp_1_session("10.47.3.74", "alext", "Home1918");
 
 int ex_main() {
     Serial.println("Exec main begin");
@@ -449,7 +539,9 @@ int ex_main() {
             // Write the websocket data to ssh
             hp_1_session.write(ssh_command);
             ssh_command = ""; // Reset command to prevent infinite loop
-
+        } else if (upload_command != "" && hp_1_session.conn) {
+            hp_1_session.scp_write(upload_command);
+            upload_command = "";
         } else if (scp_command != "" && hp_1_session.conn) {
             hp_1_session.scp_read(scp_command);
             scp_command = "";
@@ -541,6 +633,7 @@ void serverTask(void *params) {
     WebsocketNode *sshNode = new WebsocketNode("/ssh", &SSHHandler::create);
     ResourceNode *nodeSSHStatus1 = new ResourceNode("/SSH1Status", "POST", &handleSSHStatus1);
     ResourceNode *nodeSCP = new ResourceNode("/scp", "POST", &handleSCP);
+    ResourceNode *nodeUPLOAD = new ResourceNode("/upload", "POST", &handleUPLOAD);
 
     // Adding the node to the server works in the same way as for all other nodes
     secureServer->registerNode(sshNode);
@@ -570,6 +663,7 @@ void serverTask(void *params) {
     secureServer->registerNode(nodeHandleStyle);
 
     secureServer->registerNode(nodeHandleTerminalUpdate);
+    secureServer->registerNode(nodeUPLOAD);
 
     secureServer->addMiddleware(&middlewareAuth);
 
@@ -732,7 +826,7 @@ void middlewareAuth(HTTPRequest *req, HTTPResponse *res, std::function<void()> n
     } else {
         res->setStatusCode(404);
         res->setHeader("Content-Type", "text/html");
-        res->println(FuncReadTemplate("/templates/admin.html", {{"%LOGGED_IN%", "login"},{"%ERROR%", "You need to log in to access this page"}}));
+        res->println(FuncReadTemplate("/templates/admin.html", {{"%LOGGED_IN%", "login"}, {"%ERROR%", "You need to log in to access this page"}}));
     }
 }
 
@@ -800,7 +894,7 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     std::string msg;
     ss << inbuf;
     msg = ss.str();
-    String ssh_msg = msg.c_str() + "\0";
+    String ssh_msg = msg.c_str();
 
     // Send the ssh output to the client
 
@@ -828,9 +922,9 @@ void SSHHandler::onMessage(WebsocketInputStreambuf *inbuf) {
     // 3. Print and assign
     Serial.println("ssh cmd received:");
     Serial.println(ssh_msg);
-    
+
     ssh_command = ssh_msg;
-    
+
     Serial.println("ssh command processing finished");
 }
 
@@ -917,7 +1011,8 @@ void handleFan(HTTPRequest *req, HTTPResponse *res) {
 }
 
 void handleSCP(HTTPRequest *req, HTTPResponse *res) {
-    res->setHeader("Content-Type", "text/plain");
+    res->setHeader("Content-Type", "application/octet-stream");
+
     byte buffer[256];
 
     String filepath = "";
@@ -930,9 +1025,56 @@ void handleSCP(HTTPRequest *req, HTTPResponse *res) {
     String fp = fp_encoded.strcode;
     scp_command = fp.substring(9, filepath.length());
     Serial.println(scp_command);
+
+    while (scp_command != "") {
+        delay(1);
+    }
+
+    String sdPath = "/downloads/file";
+
+    fs::File file = SD.open(sdPath, FILE_READ);
+
+    String fntemp = fp.substring(9, filepath.length());
+    String filename = "attachment; filename=\"" + fntemp.substring(fntemp.lastIndexOf('/') + 1) + "\"";
+
+    res->setHeader("Content-Disposition", filename.c_str());
+
+    while (file.available()) {
+        size_t bytesRead = file.read(buffer, sizeof(buffer));
+        res->write(buffer, bytesRead);
+    }
+
+    file.close();
+    SD.remove(sdPath);
 }
 
-// TODO: Update this to use one rout
+void handleUPLOAD(HTTPRequest *req, HTTPResponse *res) {
+    res->setHeader("Content-Type", "text/html");
+    String path = req->getHeader("path").c_str();
+
+    byte buffer[256];
+    String filedata = "";
+    String Download_path = "/downloads/upload";
+
+    fs::File targetFile = SD.open(Download_path, FILE_WRITE);
+    if (!targetFile) {
+        Serial.println("Failed to open file on SD for writing");
+    }
+
+    while (!(req->requestComplete())) {
+        size_t s = req->readBytes(buffer, 256);
+
+        Serial.write((const uint8_t *)buffer, s);
+        targetFile.write((const uint8_t *)buffer, s);
+    }
+
+    targetFile.flush();
+    targetFile.close();
+
+    upload_command = path;
+};
+
+// TODO: Update this to use one route
 void handleToggle1(HTTPRequest *req, HTTPResponse *res) {
     Serial.println("1");
     digitalWrite(LAPTOP_HP_1, HIGH);
@@ -981,7 +1123,7 @@ void handleSSHStatus1(HTTPRequest *req, HTTPResponse *res) {
 
 void handleAdmin(HTTPRequest *req, HTTPResponse *res) {
     res->setHeader("Content-Type", "text/html");
-    res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", ""},{"%LOGGED_IN%", "login"}}));
+    res->println(FuncReadTemplate("/templates/admin.html", {{"%ERROR%", ""}, {"%LOGGED_IN%", "login"}}));
 };
 
 void handleSSHpage(HTTPRequest *req, HTTPResponse *res) {

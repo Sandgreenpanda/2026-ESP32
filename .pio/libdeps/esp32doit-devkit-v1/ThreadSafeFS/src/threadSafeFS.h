@@ -402,7 +402,7 @@
 
 
     // Use thread-safe wrapper for all file operations form now on in your code
-    using File = threadSafeFS::File;  
+    //using File = threadSafeFS::File;  
 
 
     // standard C compatibility
